@@ -9,12 +9,10 @@ definePageMeta({
 
 const supabase = useSupabaseClient<Database>()
 const loading = ref(false)
-const { notify } = useNotification()
+const errorMsg = ref('')
 
-const showModal = ref(false)
-const progress = ref(0)
-const logs = ref<string[]>([])
-const isComplete = ref(false)
+// Configuration de la table (BuddyAir_local pour le dev)
+const DB_TABLE = 'buddyair_local' as const
 
 const form = ref({
   username: '',
@@ -23,31 +21,17 @@ const form = ref({
   confirmPassword: ''
 })
 
-const resetForm = () => {
-  form.value = {
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  }
-}
-
 const handleRegister = async () => {
+  errorMsg.value = ''
+  
   if (form.value.password !== form.value.confirmPassword) {
-    notify("Les mots de passe ne correspondent pas.", "error")
+    errorMsg.value = "Les mots de passe ne correspondent pas."
     return
   }
 
   loading.value = true
-  showModal.value = true
-  progress.value = 10
-  logs.value = ["Initialisation de l'inscription..."]
   
   try {
-    await new Promise(r => setTimeout(r, 800))
-    logs.value.push("Envoi des données d'authentification...")
-    progress.value = 40
-
     // 1. Inscription dans Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email: form.value.email,
@@ -58,15 +42,24 @@ const handleRegister = async () => {
     })
 
     if (error) throw error
-    
-    progress.value = 100
-    resetForm()
-    logs.value.push("Compte créé et profil synchronisé !")
-    isComplete.value = true
 
+    // 2. Création du profil dans ta table personnalisée
+    if (data?.user) {
+      const { error: dbError } = await supabase
+        .from(DB_TABLE)
+        .insert({
+          id: data.user.id,
+          username: form.value.username,
+          email: form.value.email
+        })
+      
+      if (dbError) throw dbError
+      
+      // Succès : Redirection vers le login (ou dashboard si auto-confirm activé)
+      navigateTo('/auth/login')
+    }
   } catch (e: any) {
-    logs.value.push(`ERREUR : ${e.message}`)
-    notify(e.message, "error")
+    errorMsg.value = e.message
   } finally {
     loading.value = false
   }
@@ -82,7 +75,11 @@ const handleRegister = async () => {
       <UiInput v-model="form.password" label="Mot de passe" type="password" placeholder="••••••••" required />
       <UiInput v-model="form.confirmPassword" label="Confirmation" type="password" placeholder="••••••••" required />
 
-      <div class="space-y-2 mt-3">
+      <p v-if="errorMsg" class="text-red-400 text-[10px] font-black uppercase tracking-wider px-1 mt-2">
+        {{ errorMsg }}
+      </p>
+
+      <div class="space-y-2 mt-5">
         <UiButton 
           type="submit" 
           class="w-full shadow-xl shadow-blue-500/10"
@@ -95,38 +92,5 @@ const handleRegister = async () => {
     </form>
 
     <AuthSocialLinks label="Ou s'inscrire avec" />
-
-    <!-- Modal de progression -->
-    <UiModal :show="showModal">
-      <div class="w-full max-w-sm bg-slate-900/80 backdrop-blur-2xl border border-white/10 p-8 rounded-[2rem] shadow-2xl">
-        <h3 class="text-white font-black uppercase tracking-widest text-center mb-6">Création du compte</h3>
-        
-        <!-- Barre de progression -->
-        <div class="h-1.5 w-full bg-white/5 rounded-full mb-6 overflow-hidden">
-          <div 
-            class="h-full bg-linear-to-r from-blue-400 to-pink-400 transition-all duration-500"
-            :style="{ width: `${progress}%` }"
-          ></div>
-        </div>
-
-        <!-- Logs -->
-        <div class="space-y-2 mb-8">
-          <div v-for="(log, i) in logs" :key="i" class="text-[10px] font-mono text-white/50 flex gap-2">
-            <span class="text-blue-400">></span> {{ log }}
-          </div>
-        </div>
-
-        <!-- Message de confirmation mail -->
-        <div v-if="isComplete" class="bg-orange-500/10 border border-orange-500/20 p-4 rounded-xl mb-6 animate-pulse">
-          <p class="text-orange-300 text-[11px] font-bold text-center leading-relaxed">
-            Un email de confirmation a été envoyé. Veuillez valider votre compte pour pouvoir décoller !
-          </p>
-        </div>
-
-        <UiButton v-if="isComplete || logs.some(l => l.includes('ERREUR'))" @click="showModal = false" class="w-full">
-          {{ isComplete ? 'Compris !' : 'Fermer' }}
-        </UiButton>
-      </div>
-    </UiModal>
   </div>
 </template>

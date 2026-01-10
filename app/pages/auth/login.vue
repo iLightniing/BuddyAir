@@ -46,7 +46,7 @@ const handleLogin = async () => {
       <div class="space-y-2">
         <UiInput v-model="form.password" label="Mot de passe" type="password" placeholder="••••••••" required />
         <div class="flex justify-end px-1">
-          <NuxtLink to="/auth/forgot-password" class="text-[10px] font-black text-white/40 hover:text-white hover:underline transition-all uppercase tracking-widest cursor-pointer">
+          <NuxtLink to="/auth/forgot-password" class="text-[10px] font-black text-white hover:text-white hover:underline transition-all uppercase tracking-widest cursor-pointer">
             Mot de passe oublié ?
           </NuxtLink>
         </div>

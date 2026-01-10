@@ -23,10 +23,24 @@ onMounted(() => {
 
 watch(user, async () => {
   if (user.value) {
+    // On récupère le type depuis la query string ou le hash (fallback client)
+    let authType = (route.query.type as string) || ""
+    
+    if (!authType && import.meta.client) {
+      authType = new URLSearchParams(window.location.hash.substring(1)).get('type') || ''
+    }
+    
+    const isRecovery = authType === 'recovery' || route.hash.includes('type=recovery')
+    const isSignup = authType === 'signup' || route.hash.includes('type=signup')
+
+    if (isRecovery) {
+      return navigateTo('/auth/update-password')
+    }
+
     const provider = user.value.app_metadata?.provider
 
-    if (provider === 'email') {
-      // Cas 1 : Inscription par email -> on déconnecte pour forcer le premier login manuel
+    if (provider === 'email' && isSignup) {
+      // Cas 1 : Confirmation d'inscription par email -> on déconnecte pour forcer le premier login manuel
       await supabase.auth.signOut()
       return navigateTo('/auth/login?confirmed=true')
     } else {

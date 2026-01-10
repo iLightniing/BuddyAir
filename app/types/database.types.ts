@@ -9,7 +9,7 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      BuddyAir_local: {
+      buddyair_local: {
         Row: {
           id: string
           username: string

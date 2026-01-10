@@ -8,17 +8,44 @@ definePageMeta({
 })
 
 const supabase = useSupabaseClient<Database>()
+const { notify } = useNotification()
 const email = ref('')
 const loading = ref(false)
 const sent = ref(false)
 
 const handleReset = async () => {
   loading.value = true
+  
+  // 1. On interroge la table des profils pour vérifier si l'email existe
+  const { data: existingUser, error: checkError } = await supabase
+    .from('buddyair_local')
+    .select('id')
+    .eq('email', email.value)
+    .maybeSingle()
+
+  if (checkError) {
+    notify(checkError.message, 'error')
+    loading.value = false
+    return
+  }
+
+  if (!existingUser) {
+    notify("Cette adresse email n'est pas reconnue par Buddy'Air.", 'error')
+    loading.value = false
+    return
+  }
+
+  // 2. Si l'utilisateur existe, on envoie le lien de réinitialisation
   const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
-    redirectTo: window.location.origin + '/auth/update-password',
+    redirectTo: window.location.origin + '/confirm?type=recovery',
   })
   loading.value = false
-  if (!error) sent.value = true
+  
+  if (error) {
+    notify(error.message, 'error')
+  } else {
+    sent.value = true
+  }
 }
 </script>
 

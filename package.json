@@ -1,0 +1,27 @@
+{
+  "name": "BuddyAir",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxt/eslint": "^1.12.1",
+    "@nuxt/fonts": "^0.12.1",
+    "@nuxt/hints": "^1.0.0-alpha.5",
+    "@nuxt/icon": "^2.2.0",
+    "@tailwindcss/vite": "^4.1.18",
+    "eslint": "^9.39.2",
+    "lucide-vue-next": "^0.562.0",
+    "nuxt": "^4.2.2",
+    "tailwindcss": "^4.1.18",
+    "vanilla-tilt": "^1.8.1",
+    "vue": "^3.5.26",
+    "vue-router": "^4.6.4",
+    "vuedraggable": "^4.1.0"
+  }
+}

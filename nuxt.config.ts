@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  srcDir: 'app/',
   app: {
     pageTransition: {
       name: 'auth-slide',
@@ -22,7 +23,7 @@ export default defineNuxtConfig({
       ]
     }
   },
-  css: ['./app/assets/css/main.css'],
+  css: ['~/assets/css/main.css'],
   vite: {
     plugins: [
       tailwindcss(),
@@ -32,6 +33,14 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/fonts',
     '@nuxt/hints',
-    '@nuxt/icon'
-  ]
+    '@nuxt/icon',
+    '@nuxtjs/supabase'
+  ],
+  supabase: {
+    redirectOptions: {
+      login: '/auth/login',
+      callback: '/confirm',
+      exclude: ['/', '/auth/register', '/auth/forgot-password'],
+    }
+  }
 })

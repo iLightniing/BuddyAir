@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const route = useRoute()
+
 useHead({
   titleTemplate: (titleChunk) => {
     return titleChunk ? `${titleChunk} - BuddyAir` : 'BuddyAir | Votre épargne prend son envol'
@@ -8,6 +10,8 @@ useHead({
 
 <template>
   <div class="relative min-h-screen w-full overflow-hidden bg-slate-950">
+    <UiNotification />
+
     <!-- Background Image Layer (Immortel) -->
     <div class="absolute inset-0 bg-app-wallpaper bg-cover bg-center blur-md scale-110 opacity-60"></div>
 
@@ -17,7 +21,7 @@ useHead({
     </ClientOnly>
 
     <NuxtLayout>
-      <NuxtPage />
+      <NuxtPage :page-key="route.fullPath" />
     </NuxtLayout>
   </div>
 </template>

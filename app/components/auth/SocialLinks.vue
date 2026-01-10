@@ -1,7 +1,21 @@
 <script setup lang="ts">
+import type { Database } from '~/types/database.types'
+
 defineProps<{
   label: string
 }>()
+
+const supabase = useSupabaseClient<Database>()
+
+const loginWithProvider = async (provider: 'google') => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: window.location.origin + '/confirm'
+    }
+  })
+  if (error) console.error('Erreur Auth Sociale:', error.message)
+}
 </script>
 
 <template>
@@ -12,12 +26,14 @@ defineProps<{
       <div class="flex-grow border-t border-white/5"></div>
     </div>
     
-    <div class="grid grid-cols-2 gap-4">
-      <button type="button" class="flex items-center justify-center gap-3 py-3 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 hover:border-white/20 transition-all text-white text-sm font-bold cursor-pointer group/btn">
-        <Icon name="logos:google-icon" class="w-5 h-5" /> Google
-      </button>
-      <button type="button" class="flex items-center justify-center gap-3 py-3 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 hover:border-white/20 transition-all text-white text-sm font-bold cursor-pointer group/btn">
-        <Icon name="logos:facebook" class="w-5 h-5" /> Facebook
+    <div class="flex flex-col gap-4">
+      <button 
+        type="button" 
+        @click="loginWithProvider('google')"
+        class="flex items-center justify-center gap-3 py-3.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all text-white text-sm font-bold cursor-pointer group/btn w-full"
+      >
+        <Icon name="logos:google-icon" class="w-5 h-5" />
+        Continuer avec Google
       </button>
     </div>
   </div>

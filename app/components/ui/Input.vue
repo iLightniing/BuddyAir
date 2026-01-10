@@ -1,5 +1,7 @@
 <script setup lang="ts">
+defineOptions({ inheritAttrs: false })
 const model = defineModel<string>()
+const id = useId()
 
 defineProps<{
   label: string
@@ -10,8 +12,10 @@ defineProps<{
 
 <template>
   <div class="space-y-2">
-    <label class="text-[10px] font-black text-white uppercase tracking-[0.2em] ml-1 opacity-90">{{ label }}</label>
+    <label :for="id" class="text-[10px] font-black text-white uppercase tracking-[0.2em] ml-1 opacity-90">{{ label }}</label>
     <input
+      v-bind="$attrs"
+      :id="id"
       v-model="model"
       :type="type || 'text'"
       :placeholder="placeholder"

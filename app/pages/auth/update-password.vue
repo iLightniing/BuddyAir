@@ -32,11 +32,17 @@ const handleUpdate = async () => {
     navigateTo('/auth/login')
   }
 }
+
+// Bloque les bulles d'erreur natives du navigateur
+const handleInvalid = (e: Event) => {
+  e.preventDefault()
+}
 </script>
 
 <template>
-  <div v-if="user" class="flex flex-col">
-    <form class="space-y-6" @submit.prevent="handleUpdate">
+  <div class="flex flex-col">
+    <div v-if="user">
+    <form class="space-y-6" @submit.prevent="handleUpdate" @invalid.capture="handleInvalid" novalidate>
       <p class="text-white/80 text-sm text-center mb-4 italic">
         Veuillez saisir votre nouveau mot de passe pour reprendre votre envol.
       </p>
@@ -50,5 +56,6 @@ const handleUpdate = async () => {
         </UiButton>
       </div>
     </form>
+    </div>
   </div>
 </template>

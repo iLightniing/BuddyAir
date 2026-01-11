@@ -10,7 +10,6 @@ definePageMeta({
 const supabase = useSupabaseClient<Database>()
 const { notify } = useNotification()
 const loading = ref(false)
-const errorMsg = ref('')
 const form = ref({ email: '', password: '' })
 
 const route = useRoute()
@@ -22,7 +21,6 @@ onMounted(() => {
 
 const handleLogin = async () => {
   loading.value = true
-  errorMsg.value = ''
   
   const { error } = await supabase.auth.signInWithPassword({
     email: form.value.email,
@@ -33,14 +31,23 @@ const handleLogin = async () => {
     notify("Identifiants incorrects ou compte non confirmé.", "error")
     loading.value = false
   } else {
-    navigateTo('/dashboard')
+    // On marque la session comme active
+    sessionStorage.setItem('buddyair_session_active', 'true')
+    // On retourne le navigateTo pour stopper proprement le script
+    return navigateTo('/dashboard', { replace: true })
   }
+}
+
+// Bloque les bulles d'erreur natives du navigateur
+const handleInvalid = (e: Event) => {
+  e.preventDefault()
 }
 </script>
 
 <template>
   <div class="flex flex-col">
-    <form class="space-y-6" @submit.prevent="handleLogin">
+    <!-- novalidate désactive les bulles d'erreur natives du navigateur -->
+    <form class="space-y-6" @submit.prevent="handleLogin" @invalid.capture="handleInvalid" novalidate>
       <UiInput v-model="form.email" label="Identifiant" type="email" placeholder="votre@email.com" required />
 
       <div class="space-y-2">

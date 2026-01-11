@@ -7,8 +7,12 @@ export default defineNuxtConfig({
   srcDir: 'app/',
   app: {
     pageTransition: {
-      name: 'auth-slide',
-      mode: 'out-in'
+      name: 'page',
+      mode: 'default'
+    },
+    layoutTransition: {
+      name: 'layout',
+      mode: 'default'
     },
     head: {
       htmlAttrs: {
@@ -37,10 +41,6 @@ export default defineNuxtConfig({
     '@nuxtjs/supabase'
   ],
   supabase: {
-    redirectOptions: {
-      login: '/auth/login',
-      callback: '/confirm',
-      exclude: ['/', '/auth/register', '/auth/forgot-password'],
-    }
+    redirect: false
   }
 })

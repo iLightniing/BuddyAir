@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Database } from '~/types/database.types'
+import type { Database } from '../../types/database.types'
 
 defineProps<{
   label: string
@@ -30,7 +30,7 @@ const loginWithProvider = async (provider: 'google') => {
       <button 
         type="button" 
         @click="loginWithProvider('google')"
-        class="flex items-center justify-center gap-3 py-3.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all text-white text-sm font-bold cursor-pointer group/btn w-full"
+        class="flex items-center justify-center gap-3 py-3.5 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 hover:border-white/20 transition-all text-white text-sm font-bold cursor-pointer group/btn w-full"
       >
         <Icon name="logos:google-icon" class="w-5 h-5" />
         Continuer avec Google

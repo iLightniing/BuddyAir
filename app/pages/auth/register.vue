@@ -64,12 +64,17 @@ const handleRegister = async () => {
     loading.value = false
   }
 }
+
+// Empêche l'affichage des bulles d'erreur natives si le navigateur force quand même
+const handleInvalid = (e: Event) => {
+  e.preventDefault()
+}
 </script>
 
 <template>
   <div class="flex flex-col">
     <!-- Register Form -->
-    <form class="space-y-2" @submit.prevent="handleRegister">
+    <form class="space-y-2" @submit.prevent="handleRegister" @invalid.capture="handleInvalid" novalidate>
       <UiInput v-model="form.username" label="Nom d'utilisateur" placeholder="Buddy_Aventurier" required />
       <UiInput v-model="form.email" label="Adresse Email" type="email" placeholder="votre@email.com" required />
       <UiInput v-model="form.password" label="Mot de passe" type="password" placeholder="••••••••" required />

@@ -21,8 +21,9 @@ useHead({
     </ClientOnly>
 
     <main class="relative min-h-screen" style="z-index: 20;">
+      <!-- On laisse Nuxt gérer la transition de layout naturellement -->
       <NuxtLayout>
-        <!-- La page-key garantit que la transition se déclenche à chaque changement de route -->
+        <!-- La page-key sur route.path permet des transitions fluides entre les pages -->
         <NuxtPage :page-key="route.path" />
       </NuxtLayout>
     </main>

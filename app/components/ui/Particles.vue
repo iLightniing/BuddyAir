@@ -1,4 +1,6 @@
 <script setup lang="ts">
+defineOptions({ inheritAttrs: false })
+
 const props = defineProps<{
   effect: 'snow' | 'petals'
 }>()
@@ -125,5 +127,5 @@ watch(() => props.effect, () => {
 </script>
 
 <template>
-  <canvas ref="canvasRef" class="fixed inset-0 pointer-events-none z-10"></canvas>
+  <canvas v-bind="$attrs" ref="canvasRef" class="fixed inset-0 pointer-events-none"></canvas>
 </template>

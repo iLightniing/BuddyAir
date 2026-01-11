@@ -30,5 +30,47 @@
 .auth-slide-leave-active {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Empêche le dédoublement visuel pour auth-slide */
+.auth-slide-leave-active {
+  position: absolute;
+  width: 100%;
+}
+
 .auth-slide-enter-from { opacity: 0; transform: translateX(30px); }
 .auth-slide-leave-to { opacity: 0; transform: translateX(-30px); }
+
+/* Transitions globales Nuxt (Fix double rendu / stacking) */
+.page-enter-active,
+.page-leave-active,
+.layout-enter-active,
+.layout-leave-active {
+  /* Transition premium : opacité + flou + transformation */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Évite le dédoublement : l'élément qui part sort du flux pour ne pas pousser le nouveau */
+.page-leave-active,
+.layout-leave-active {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* L'élément qui arrive est placé au-dessus */
+.page-enter-active,
+.layout-enter-active {
+  z-index: 1;
+}
+
+.page-enter-from,
+.page-leave-to,
+.layout-enter-from,
+.layout-leave-to {
+  opacity: 0;
+  filter: blur(10px);
+  transform: scale(0.98);
+}

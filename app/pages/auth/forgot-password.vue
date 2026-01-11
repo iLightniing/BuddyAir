@@ -47,12 +47,17 @@ const handleReset = async () => {
     sent.value = true
   }
 }
+
+// Bloque les bulles d'erreur natives du navigateur
+const handleInvalid = (e: Event) => {
+  e.preventDefault()
+}
 </script>
 
 <template>
   <div class="flex flex-col">
     <!-- Forgot Password Form -->
-    <form class="space-y-8" @submit.prevent="handleReset">
+    <form class="space-y-8" @submit.prevent="handleReset" @invalid.capture="handleInvalid" novalidate>
       <p class="text-white/80 text-sm text-center mb-4 italic">
         {{ sent ? 'Un lien a été envoyé sur votre messagerie.' : 'Entrez votre adresse email pour recevoir un lien de réinitialisation.' }}
       </p>

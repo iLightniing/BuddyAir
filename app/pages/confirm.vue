@@ -4,52 +4,47 @@ const user = useSupabaseUser()
 const supabase = useSupabaseClient()
 const route = useRoute()
 const { notify } = useNotification()
+const isRedirecting = ref(false)
+
+// Fonction de redirection logique
+const handleRedirect = async () => {
+  if (!user.value || isRedirecting.value) return
+  isRedirecting.value = true
+
+  // Extraction du type (signup, recovery, etc.) depuis Query ou Hash
+  const hashParams = new URLSearchParams(route.hash.substring(1))
+  const authType = hashParams.get('type') || route.query.type
+  
+  const isRecovery = authType === 'recovery'
+  const isSignup = authType === 'signup'
+  const provider = user.value.app_metadata?.provider
+
+  if (isRecovery) {
+    return navigateTo('/auth/update-password', { replace: true })
+  }
+
+  if (provider === 'email' && isSignup) {
+    // Cas Inscription : on déconnecte pour forcer le login manuel
+    await supabase.auth.signOut()
+    return navigateTo('/auth/login?confirmed=true', { replace: true })
+  }
+
+  // Cas par défaut (Google login, etc.) : décollage immédiat
+  return navigateTo('/dashboard', { replace: true })
+}
 
 // Gestion des erreurs ou annulations (ex: Google Cancel)
 onMounted(() => {
-  // Supabase renvoie les erreurs d'authentification dans l'URL (query ou hash)
   const hasError = route.query.error || route.hash.includes('error_description')
   
   if (hasError) {
     notify("La connexion a été annulée ou a échoué.", "error")
-    return navigateTo('/auth/login')
+    return navigateTo('/auth/login', { replace: true })
   }
-
-  // Sécurité : Si l'utilisateur est bloqué ici sans session après 5s (accès manuel ou bug)
-  setTimeout(() => {
-    if (!user.value) navigateTo('/auth/login')
-  }, 5000)
 })
 
-watch(user, async () => {
-  if (user.value) {
-    // On récupère le type depuis la query string ou le hash (fallback client)
-    let authType = (route.query.type as string) || ""
-    
-    if (!authType && import.meta.client) {
-      authType = new URLSearchParams(window.location.hash.substring(1)).get('type') || ''
-    }
-    
-    const isRecovery = authType === 'recovery' || route.hash.includes('type=recovery')
-    const isSignup = authType === 'signup' || route.hash.includes('type=signup')
-
-    if (isRecovery) {
-      return navigateTo('/auth/update-password')
-    }
-
-    const provider = user.value.app_metadata?.provider
-
-    if (provider === 'email' && isSignup) {
-      // Cas 1 : Confirmation d'inscription par email -> on déconnecte pour forcer le premier login manuel
-      await supabase.auth.signOut()
-      return navigateTo('/auth/login?confirmed=true')
-    } else {
-      // Cas 2 : Connexion sociale (Google) -> l'utilisateur est déjà authentifié
-      // On l'envoie directement sur son tableau de bord
-      return navigateTo('/dashboard')
-    }
-  }
-}, { immediate: true })
+// Déclenchement de la redirection dès que l'utilisateur est chargé
+watch(user, () => { if (user.value) handleRedirect() }, { immediate: true })
 </script>
 
 <template>

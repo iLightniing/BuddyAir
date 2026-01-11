@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { Database } from '~/types/database.types'
 
 definePageMeta({
   layout: 'auth',
@@ -7,29 +6,44 @@ definePageMeta({
   authIcon: 'lucide:snowflake'
 })
 
-const supabase = useSupabaseClient<Database>()
-const user = useSupabaseUser()
+const pb = usePocketBase()
 const { notify } = useNotification()
 const loading = ref(false)
 const password = ref('')
 const confirmPassword = ref('')
+const token = ref<string | null>(null)
+
+onMounted(() => {
+  token.value = sessionStorage.getItem('password_reset_token')
+  if (!token.value) {
+    notify("Aucun token de réinitialisation trouvé. Veuillez refaire la demande.", "error")
+    navigateTo('/auth/forgot-password', { replace: true })
+  }
+})
 
 const handleUpdate = async () => {
   if (password.value !== confirmPassword.value) {
     return notify("Les mots de passe ne correspondent pas.", "error")
   }
+  if (!token.value) {
+    return notify("Token de réinitialisation invalide.", "error")
+  }
 
   loading.value = true
-  const { error } = await supabase.auth.updateUser({
-    password: password.value
-  })
-
-  if (error) {
-    notify(error.message, "error")
-    loading.value = false
-  } else {
+  
+  try {
+    await pb.collection('users').confirmPasswordReset(
+      token.value,
+      password.value,
+      confirmPassword.value
+    )
+    
+    sessionStorage.removeItem('password_reset_token')
     notify("Mot de passe mis à jour ! Vous pouvez maintenant vous connecter.", "success")
-    navigateTo('/auth/login')
+    navigateTo('/auth/login', { replace: true })
+  } catch (error: any) {
+    notify(error.message || "Une erreur est survenue.", "error")
+    loading.value = false
   }
 }
 
@@ -41,7 +55,6 @@ const handleInvalid = (e: Event) => {
 
 <template>
   <div class="flex flex-col">
-    <div v-if="user">
     <form class="space-y-6" @submit.prevent="handleUpdate" @invalid.capture="handleInvalid" novalidate>
       <p class="text-slate-600 text-sm text-center mb-4 italic">
         Veuillez saisir votre nouveau mot de passe pour reprendre votre envol.
@@ -56,6 +69,5 @@ const handleInvalid = (e: Event) => {
         </UiButton>
       </div>
     </form>
-    </div>
   </div>
 </template>

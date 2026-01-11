@@ -37,10 +37,6 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/fonts',
     '@nuxt/hints',
-    '@nuxt/icon',
-    '@nuxtjs/supabase'
-  ],
-  supabase: {
-    redirect: false
-  }
+    '@nuxt/icon'
+  ]
 })

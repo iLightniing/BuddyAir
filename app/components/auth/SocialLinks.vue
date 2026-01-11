@@ -1,20 +1,16 @@
 <script setup lang="ts">
-import type { Database } from '../../types/database.types'
-
 defineProps<{
   label: string
 }>()
 
-const supabase = useSupabaseClient<Database>()
+const pb = usePocketBase()
 
 const loginWithProvider = async (provider: 'google') => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: {
-      redirectTo: window.location.origin + '/confirm'
-    }
-  })
-  if (error) console.error('Erreur Auth Sociale:', error.message)
+  try {
+    await pb.collection('users').authWithOAuth2({ provider });
+  } catch (error) {
+    console.error('Erreur Auth Sociale:', error);
+  }
 }
 </script>
 

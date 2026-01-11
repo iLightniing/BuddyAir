@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const supabase = useSupabaseClient()
+const pb = usePocketBase()
+const user = usePocketBaseUser()
 
 const navItems = [
   { icon: 'lucide:layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
@@ -12,12 +13,30 @@ const navItems = [
 ]
 
 const showLogoutModal = ref(false)
+const showLoadingModal = ref(false)
+const loadingProgress = ref(0)
+const loadingStep = ref('')
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 const confirmLogout = async () => {
-  await supabase.auth.signOut()
-  sessionStorage.removeItem('buddyair_session_active')
   showLogoutModal.value = false
-  return navigateTo('/auth/login', { replace: true })
+  showLoadingModal.value = true
+  
+  loadingProgress.value = 0
+  loadingStep.value = 'Fermeture de la session...'
+  await sleep(500)
+
+  loadingProgress.value = 60
+  loadingStep.value = 'Nettoyage sécurisé...'
+  pb.authStore.clear()
+  user.value = null
+  sessionStorage.removeItem('buddyair_session_active')
+  localStorage.removeItem('buddyair_session_active')
+  
+  await sleep(400)
+  loadingProgress.value = 100
+  return navigateTo('/auth/login')
 }
 </script>
 
@@ -64,5 +83,19 @@ const confirmLogout = async () => {
       @close="showLogoutModal = false" 
       @confirm="confirmLogout" 
     />
+
+    <!-- Modal de chargement (Déconnexion) -->
+    <UiModal :show="showLoadingModal">
+      <div class="bg-ui-surface border border-ui-border p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
+        <div class="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <Icon name="lucide:plane-landing" class="w-8 h-8 text-red-500 animate-pulse" />
+        </div>
+        <h3 class="text-xl font-black text-ui-content mb-2">Déconnexion</h3>
+        <p class="text-sm text-ui-content-muted mb-8 h-5">{{ loadingStep }}</p>
+        <div class="h-2 bg-ui-surface-muted rounded-full overflow-hidden border border-ui-border">
+          <div class="h-full bg-linear-to-r from-red-400 to-orange-400 transition-all duration-300 ease-out" :style="{ width: `${loadingProgress}%` }"></div>
+        </div>
+      </div>
+    </UiModal>
   </aside>
 </template>

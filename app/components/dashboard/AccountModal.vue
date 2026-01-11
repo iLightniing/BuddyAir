@@ -1,16 +1,17 @@
 <script setup lang="ts">
-const props = defineProps<{ show: boolean }>()
+import banksList from '~/data/banks.json'
+const props = defineProps<{ show: boolean, account?: any }>()
 const emit = defineEmits(['close', 'success'])
 
 // On utilise <any> pour contourner la vérification stricte des tables connues
-const supabase = useSupabaseClient<any>()
-const user = useSupabaseUser()
+const pb = usePocketBase()
 const { notify } = useNotification()
 const loading = ref(false)
+const isBalanceLocked = ref(false)
 
 const form = ref({
   name: '',
-  bank: 'Revolut',
+  bank: '',
   type: 'immediate',
   group: 'current',
   currency: 'EUR',
@@ -18,13 +19,14 @@ const form = ref({
   balanceType: 'credit' // 'credit' (+) ou 'debit' (-)
 })
 
-const banks = [
-  { label: 'Revolut', value: 'Revolut' },
-  { label: 'BoursoBank', value: 'BoursoBank' },
-  { label: 'BNP Paribas', value: 'BNP Paribas' },
-  { label: 'Société Générale', value: 'Société Générale' },
-  { label: 'Autre', value: 'Autre' }
-]
+const banks = computed(() => {
+  const list = banksList.map(b => ({
+    label: b.nom,
+    value: b.nom
+  })).sort((a, b) => a.label.localeCompare(b.label))
+  
+  return [...list, { label: 'Autre', value: 'Autre' }]
+})
 
 const types = [
   { label: 'Débit immédiat', value: 'immediate' },
@@ -47,31 +49,83 @@ const balanceOptions = [
   { label: 'Débiteur (-)', value: 'debit', activeClass: 'bg-ui-surface shadow-sm text-red-500' }
 ]
 
-const handleCreate = async () => {
-  if (!user.value) return
+watch(() => props.show, async (isOpen) => {
+  if (isOpen) {
+    if (props.account) {
+      form.value = {
+        name: props.account.name,
+        bank: props.account.bank,
+        type: props.account.type,
+        group: props.account.account_group,
+        currency: props.account.currency,
+        balance: Math.abs(props.account.initial_balance),
+        balanceType: props.account.initial_balance < 0 ? 'debit' : 'credit'
+      }
+      
+      // Vérification s'il y a des transactions (getList avec limit=1 pour optimiser)
+      const result = await pb.collection('transactions').getList(1, 1, {
+        filter: `account_id = "${props.account.id}"`
+      })
+      isBalanceLocked.value = result.totalItems > 0
+    } else {
+    form.value = {
+      name: '',
+      bank: banks.value[0]?.value || 'Autre',
+      type: 'immediate',
+      group: 'current',
+      currency: 'EUR',
+      balance: 0,
+      balanceType: 'credit'
+    }
+    isBalanceLocked.value = false
+    }
+  }
+})
+
+const handleSubmit = async () => {
+  // Récupération de l'utilisateur courant depuis le store PocketBase
+  const currentUser = pb.authStore.model
+
+  if (!currentUser) return
   loading.value = true
 
   const finalBalance = form.value.balanceType === 'debit' ? -Math.abs(form.value.balance) : Math.abs(form.value.balance)
 
-  const { error } = await supabase.from('accounts').insert({
-    user_id: user.value.id,
-    name: form.value.name,
-    bank: form.value.bank,
-    type: form.value.type,
-    account_group: form.value.group,
-    currency: form.value.currency,
-    initial_balance: finalBalance,
-    current_balance: finalBalance
-  })
-
-  if (error) {
-    notify(error.message, 'error')
-    loading.value = false
+  try {
+  
+  if (props.account) {
+    const updates: any = {
+      name: form.value.name,
+      bank: form.value.bank,
+      type: form.value.type,
+      account_group: form.value.group,
+      currency: form.value.currency
+    }
+    if (!isBalanceLocked.value) {
+      updates.initial_balance = finalBalance
+      updates.current_balance = finalBalance // On reset le solde courant si on change l'initial (simplification)
+    }
+    await pb.collection('accounts').update(props.account.id, updates)
   } else {
-    notify('Compte créé avec succès !', 'success')
+    await pb.collection('accounts').create({
+      user_id: currentUser.id,
+      name: form.value.name,
+      bank: form.value.bank,
+      type: form.value.type,
+      account_group: form.value.group,
+      currency: form.value.currency,
+      initial_balance: finalBalance,
+      current_balance: finalBalance
+    })
+  }
+
+    notify(props.account ? 'Compte modifié !' : 'Compte créé avec succès !', 'success')
     loading.value = false
     emit('success')
     emit('close')
+  } catch (error: any) {
+    notify(error.message, 'error')
+    loading.value = false
   }
 }
 </script>
@@ -84,12 +138,12 @@ const handleCreate = async () => {
           <Icon name="lucide:wallet" class="w-6 h-6" />
         </div>
         <div>
-          <h3 class="text-xl font-black text-ui-content tracking-tight">Nouveau compte</h3>
+          <h3 class="text-xl font-black text-ui-content tracking-tight">{{ account ? 'Modifier le compte' : 'Nouveau compte' }}</h3>
           <p class="text-xs text-ui-content-muted font-medium uppercase tracking-widest">Configuration bancaire</p>
         </div>
       </div>
 
-      <form @submit.prevent="handleCreate" class="space-y-5">
+      <form @submit.prevent="handleSubmit" class="space-y-5">
         <UiInput v-model="form.name" label="Nom du compte" placeholder="Ex: Compte Principal" required />
         
         <div class="grid grid-cols-2 gap-4">
@@ -104,7 +158,7 @@ const handleCreate = async () => {
 
         <div class="grid grid-cols-3 gap-4 items-end">
           <div class="col-span-2">
-            <UiInput v-model.number="form.balance" type="number" step="0.01" label="Solde initial" placeholder="0.00" required />
+            <UiInput v-model.number="form.balance" type="number" step="0.01" label="Solde initial" placeholder="0.00" required :disabled="isBalanceLocked" :title="isBalanceLocked ? 'Modification impossible : des transactions existent' : ''" />
           </div>
           <UiToggle v-model="form.balanceType" label="État du solde" :options="balanceOptions" />
         </div>
@@ -112,7 +166,7 @@ const handleCreate = async () => {
         <div class="flex gap-3 pt-4">
           <UiButton @click="emit('close')" type="button" variant="secondary" class="flex-1">Annuler</UiButton>
           <UiButton type="submit" :disabled="loading" class="flex-1 shadow-xl shadow-blue-500/20">
-            {{ loading ? 'Création...' : 'Confirmer' }}
+            {{ loading ? 'Sauvegarde...' : 'Confirmer' }}
           </UiButton>
         </div>
       </form>

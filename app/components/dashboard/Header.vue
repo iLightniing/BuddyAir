@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Les imports (ref, computed, etc.) sont automatiques dans Nuxt 3
-const user = useSupabaseUser()
+const user = usePocketBaseUser()
 const route = useRoute()
 
 // Récupération du titre depuis la meta de la route
@@ -55,7 +55,7 @@ const weather = ref({ temp: 4, icon: 'lucide:cloud-snow', label: 'Ciel voilé' }
     <!-- Gauche : Salutations -->
     <div class="flex items-center gap-3">
       <span class="text-sm font-black text-ui-content tracking-tight whitespace-nowrap">
-        Bonjour, {{ user?.user_metadata?.username || 'Aventurier' }}
+        Bonjour, {{ user?.username || 'Aventurier' }}
       </span>
     </div>
 

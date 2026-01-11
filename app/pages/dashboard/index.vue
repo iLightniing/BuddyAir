@@ -3,7 +3,7 @@ definePageMeta({
   title: 'Aperçu global'
 })
 
-const user = useSupabaseUser()
+const user = usePocketBaseUser()
 </script>
 
 <template>

@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import type { Database } from '~/types/database.types'
-
 definePageMeta({
   layout: 'auth',
   authSlogan: 'Récupération de <span class="bg-linear-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">compte</span>',
   authIcon: 'lucide:snowflake'
 })
 
-const supabase = useSupabaseClient<Database>()
+const pb = usePocketBase()
 const { notify } = useNotification()
 const email = ref('')
 const loading = ref(false)
@@ -15,36 +13,13 @@ const sent = ref(false)
 
 const handleReset = async () => {
   loading.value = true
-  
-  // 1. On interroge la table des profils pour vérifier si l'email existe
-  const { data: existingUser, error: checkError } = await supabase
-    .from('buddyair_local')
-    .select('id')
-    .eq('email', email.value)
-    .maybeSingle()
-
-  if (checkError) {
-    notify(checkError.message, 'error')
-    loading.value = false
-    return
-  }
-
-  if (!existingUser) {
-    notify("Cette adresse email n'est pas reconnue par Buddy'Air.", 'error')
-    loading.value = false
-    return
-  }
-
-  // 2. Si l'utilisateur existe, on envoie le lien de réinitialisation
-  const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
-    redirectTo: window.location.origin + '/confirm?type=recovery',
-  })
-  loading.value = false
-  
-  if (error) {
-    notify(error.message, 'error')
-  } else {
+  try {
+    await pb.collection('users').requestPasswordReset(email.value)
     sent.value = true
+  } catch (error: any) {
+    notify("Cette adresse email n'est pas reconnue.", "error")
+  } finally {
+    loading.value = false
   }
 }
 

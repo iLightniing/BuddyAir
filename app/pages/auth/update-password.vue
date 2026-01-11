@@ -4,7 +4,7 @@ import type { Database } from '~/types/database.types'
 definePageMeta({
   layout: 'auth',
   authSlogan: 'Sécurisez votre <span class="bg-linear-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">accès</span>',
-  authIcon: 'lucide:shield-check'
+  authIcon: 'lucide:snowflake'
 })
 
 const supabase = useSupabaseClient<Database>()
@@ -43,7 +43,7 @@ const handleInvalid = (e: Event) => {
   <div class="flex flex-col">
     <div v-if="user">
     <form class="space-y-6" @submit.prevent="handleUpdate" @invalid.capture="handleInvalid" novalidate>
-      <p class="text-white/80 text-sm text-center mb-4 italic">
+      <p class="text-slate-600 text-sm text-center mb-4 italic">
         Veuillez saisir votre nouveau mot de passe pour reprendre votre envol.
       </p>
       

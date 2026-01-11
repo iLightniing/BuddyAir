@@ -4,7 +4,7 @@ import type { Database } from '~/types/database.types'
 definePageMeta({
   layout: 'auth',
   authSlogan: 'Rejoignez <span class="bg-linear-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">l\'aventure</span>',
-  authIcon: 'lucide:user-plus'
+  authIcon: 'lucide:snowflake'
 })
 
 const supabase = useSupabaseClient<Database>()

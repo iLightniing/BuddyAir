@@ -4,7 +4,7 @@ import type { Database } from '~/types/database.types'
 definePageMeta({
   layout: 'auth',
   authSlogan: 'Récupération de <span class="bg-linear-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">compte</span>',
-  authIcon: 'lucide:key-round'
+  authIcon: 'lucide:snowflake'
 })
 
 const supabase = useSupabaseClient<Database>()
@@ -58,7 +58,7 @@ const handleInvalid = (e: Event) => {
   <div class="flex flex-col">
     <!-- Forgot Password Form -->
     <form class="space-y-8" @submit.prevent="handleReset" @invalid.capture="handleInvalid" novalidate>
-      <p class="text-white/80 text-sm text-center mb-4 italic">
+      <p class="text-slate-600 text-sm text-center mb-4 italic">
         {{ sent ? 'Un lien a été envoyé sur votre messagerie.' : 'Entrez votre adresse email pour recevoir un lien de réinitialisation.' }}
       </p>
       

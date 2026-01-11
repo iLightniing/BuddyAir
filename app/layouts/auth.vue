@@ -15,11 +15,11 @@ const isRegister = computed(() => route.path === '/auth/register')
     <div class="hidden lg:flex absolute inset-0 right-[640px] flex-col justify-center px-20 z-10">
       <div class="max-w-lg space-y-10">
         <div class="space-y-4">
-          <h2 class="text-white text-5xl font-black leading-tight drop-shadow-2xl">
+          <h2 class="text-ui-content text-5xl font-black leading-tight">
             Pilotez votre épargne <br />
             <span class="bg-linear-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">en toute simplicité.</span>
           </h2>
-          <p class="text-white/40 text-lg font-medium italic">Rejoignez la communauté Buddy'Air.</p>
+          <p class="text-ui-content-muted text-lg font-medium italic">Rejoignez la communauté Buddy'Air.</p>
         </div>
 
         <AuthFeatures />
@@ -28,29 +28,29 @@ const isRegister = computed(() => route.path === '/auth/register')
 
     <aside class="auth-sidebar">
       <!-- En-tête commun (Fixe durant les transitions) -->
-      <div :class="['flex items-center gap-5 transition-all duration-400 cubic-bezier(0.4, 0, 0.2, 1)', isRegister ? 'mb-2 -translate-y-6' : 'mb-6 -translate-y-4']">
+      <div class="flex items-center gap-5 mb-6">
         <img src="~/assets/images/buddyair.png" alt="BuddyAir Logo" class="w-20 h-20 object-contain drop-shadow-2xl" />
         <div class="flex flex-col">
-          <h1 class="text-4xl font-black tracking-tighter text-white leading-none">
+          <h1 class="text-4xl font-black tracking-tighter text-ui-content leading-none">
             Buddy'<span class="bg-linear-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">Air</span>
           </h1>
-          <p class="mt-1.5 text-white text-[10px] font-bold uppercase tracking-[0.1em] min-h-[20px] flex items-center" v-html="slogan"></p>
+          <p class="mt-1.5 text-ui-content-muted text-[10px] font-bold uppercase tracking-[0.1em] min-h-[20px] flex items-center" v-html="slogan"></p>
         </div>
       </div>
 
       <!-- Séparation Design -->
-      <div :class="['relative flex items-center transition-all duration-400 cubic-bezier(0.4, 0, 0.2, 1)', isRegister ? 'mb-4 -translate-y-6' : 'mb-8']">
-        <div class="flex-grow border-t border-white/10"></div>
-        <div class="mx-4 text-white/60 w-10 h-10 flex items-center justify-center shrink-0">
+      <div class="relative flex items-center mb-8">
+        <div class="flex-grow border-t border-ui-border"></div>
+        <div class="mx-4 text-ui-content-muted w-10 h-10 flex items-center justify-center shrink-0">
           <Transition name="icon-fade" mode="out-in">
             <Icon :key="icon" :name="icon" class="w-6 h-6" />
           </Transition>
         </div>
-        <div class="flex-grow border-t border-white/10"></div>
+        <div class="flex-grow border-t border-ui-border"></div>
       </div>
 
       <!-- Contenu dynamique (Formulaires) -->
-      <div :class="['transition-all duration-400 cubic-bezier(0.4, 0, 0.2, 1)', isRegister ? '-translate-y-6' : '']">
+      <div>
         <slot />
       </div>
     </aside>

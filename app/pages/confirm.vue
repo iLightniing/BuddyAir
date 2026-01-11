@@ -48,7 +48,7 @@ watch(user, () => { if (user.value) handleRedirect() }, { immediate: true })
 </script>
 
 <template>
-  <div class="flex flex-col items-center justify-center h-screen text-white">
+  <div class="flex flex-col items-center justify-center h-screen text-ui-content">
     <div class="w-12 h-12 border-4 border-blue-400/30 border-t-blue-400 rounded-full animate-spin mb-4"></div>
     <p class="text-sm font-bold uppercase tracking-widest opacity-70">Finalisation de la connexion...</p>
   </div>

@@ -14,7 +14,7 @@ defineProps<{
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="show" class="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
+      <div v-if="show" class="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-zinc-900/20 backdrop-blur-sm">
         <slot />
       </div>
     </Transition>

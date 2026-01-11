@@ -8,13 +8,13 @@ const emit = defineEmits(['close', 'confirm'])
 
 <template>
   <UiModal :show="show">
-    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full text-center">
+    <div class="bg-ui-surface border border-ui-border p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full text-center">
       <div class="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-red-400">
         <Icon name="lucide:log-out" class="w-8 h-8" />
       </div>
       
-      <h3 class="text-white text-xl font-black uppercase tracking-tighter mb-2">Déconnexion</h3>
-      <p class="text-white/60 text-sm mb-8 italic px-4">Prêt à atterrir ? Votre session sera fermée en toute sécurité.</p>
+      <h3 class="text-ui-content text-xl font-black uppercase tracking-tighter mb-2">Déconnexion</h3>
+      <p class="text-ui-content-muted text-sm mb-8 italic px-4">Prêt à atterrir ? Votre session sera fermée en toute sécurité.</p>
       
       <div class="flex gap-3">
         <UiButton @click="emit('close')" variant="secondary" class="flex-1">

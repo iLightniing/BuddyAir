@@ -9,7 +9,7 @@ useHead({
 </script>
 
 <template>
-  <div class="relative min-h-screen w-full bg-slate-950">
+  <div class="relative min-h-screen w-full bg-ui-surface-muted transition-colors duration-500">
     <UiNotification />
 
     <!-- Background Image Layer (Immortel) -->

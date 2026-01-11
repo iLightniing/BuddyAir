@@ -13,9 +13,9 @@ const { message, type, isVisible } = useNotification()
   >
     <div v-if="isVisible" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] w-full max-w-md px-4">
       <div 
-        class="backdrop-blur-xl border px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4"
+        class="bg-ui-surface border border-ui-border px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4"
         :class="[
-          type === 'error' ? 'bg-red-500/20 border-red-500/30 text-red-100' : 'bg-white/10 border-white/20 text-white'
+          type === 'error' ? 'border-red-200 text-red-600' : 'text-ui-content'
         ]"
       >
         <Icon :name="type === 'error' ? 'lucide:alert-circle' : 'lucide:check-circle'" class="w-6 h-6 shrink-0" />

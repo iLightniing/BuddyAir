@@ -3,9 +3,14 @@
     <!-- Sidebar fixe à gauche -->
     <DashboardSidebar />
 
-    <!-- Zone de contenu (décalée de la largeur de la sidebar) -->
-    <main class="flex-1 ml-20 p-8 lg:p-12">
-      <slot />
-    </main>
+    <div class="flex-1 flex flex-col ml-20">
+      <!-- Header supérieur -->
+      <DashboardHeader />
+
+      <!-- Zone de contenu -->
+      <main class="flex-1 p-8 lg:p-12">
+        <slot />
+      </main>
+    </div>
   </div>
 </template>

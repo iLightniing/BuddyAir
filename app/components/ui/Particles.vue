@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{
@@ -26,6 +27,7 @@ interface Particle {
 }
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+const isMounted = ref(false)
 let animationFrame: number
 let particles: Particle[] = []
 
@@ -111,9 +113,12 @@ const handleResize = () => {
 }
 
 onMounted(() => {
-  handleResize()
-  window.addEventListener('resize', handleResize)
-  draw()
+  isMounted.value = true
+  nextTick(() => {
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    draw()
+  })
 })
 
 onUnmounted(() => {
@@ -127,5 +132,5 @@ watch(() => props.effect, () => {
 </script>
 
 <template>
-  <canvas v-bind="$attrs" ref="canvasRef" class="fixed inset-0 pointer-events-none"></canvas>
+  <canvas v-if="isMounted" v-bind="$attrs" ref="canvasRef" class="fixed inset-0 pointer-events-none"></canvas>
 </template>

@@ -37,7 +37,7 @@ const confirmLogout = async () => {
         :key="item.to"
         :to="item.to"
         class="relative group flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 hover:bg-ui-surface-muted text-ui-content-muted hover:text-ui-content"
-        active-class="!text-blue-500 bg-ui-surface-muted shadow-sm"
+        exact-active-class="!text-blue-500 bg-ui-surface-muted shadow-sm"
       >
         <Icon :name="item.icon" class="w-6 h-6" />
         

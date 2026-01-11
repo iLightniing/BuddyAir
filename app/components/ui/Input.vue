@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false })
-const model = defineModel<string>()
+const model = defineModel<string | number>()
 const id = useId()
 
 defineProps<{
@@ -19,7 +19,7 @@ defineProps<{
       v-model="model"
       :type="type || 'text'"
       :placeholder="placeholder"
-      class="w-full px-5 py-3.5 bg-ui-surface border border-ui-border rounded-xl text-ui-content placeholder:text-ui-content-muted/50 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 transition-all text-sm"
+      class="w-full h-[52px] px-5 bg-ui-surface border border-ui-border rounded-md text-ui-content placeholder:text-ui-content-muted/50 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 transition-all text-sm"
     />
   </div>
 </template>

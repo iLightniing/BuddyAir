@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
 const route = useRoute()
 // On récupère les infos dynamiques définies dans definePageMeta de chaque page
 const slogan = computed(() => (route.meta.authSlogan as string) || 'Votre épargne prend son envol')
 const icon = computed(() => (route.meta.authIcon as string) || 'lucide:snowflake')
-
-const isRegister = computed(() => route.path === '/auth/register')
 </script>
 
 <template>

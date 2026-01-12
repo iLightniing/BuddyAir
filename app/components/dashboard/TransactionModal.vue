@@ -37,8 +37,9 @@ const categoriesData: Record<string, string[]> = {
 const categoryOptions = Object.keys(categoriesData).map(c => ({ label: c, value: c }))
 
 const subCategoryOptions = computed(() => {
-  if (!form.value.category || !categoriesData[form.value.category]) return []
-  return categoriesData[form.value.category].map(s => ({ label: s, value: s }))
+  const category = form.value.category
+  const subCategories = categoriesData[category]
+  return subCategories ? subCategories.map(s => ({ label: s, value: s })) : []
 })
 
 const paymentMethods = [

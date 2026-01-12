@@ -3,7 +3,6 @@
 definePageMeta({
   layout: 'auth',
   authSlogan: 'Sécurisez votre <span class="bg-linear-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">accès</span>',
-  authIcon: 'lucide:snowflake'
 })
 
 const pb = usePocketBase()

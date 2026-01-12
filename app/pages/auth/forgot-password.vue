@@ -2,7 +2,6 @@
 definePageMeta({
   layout: 'auth',
   authSlogan: 'Récupération de <span class="bg-linear-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">compte</span>',
-  authIcon: 'lucide:snowflake'
 })
 
 const pb = usePocketBase()

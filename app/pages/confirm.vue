@@ -2,14 +2,19 @@
 const pb = usePocketBase()
 const route = useRoute()
 const { notify } = useNotification()
+const user = usePocketBaseUser()
+
+const showErrorAndRedirect = (msg: string) => {
+  notify(msg, "error")
+  return navigateTo('/auth/login', { replace: true })
+}
 
 const handleConfirmation = async () => {
   const token = route.query.token as string
   const type = route.query.type as 'signup' | 'recovery' | 'oauth'
 
   if (!token && type !== 'oauth') {
-    notify("Token de confirmation manquant.", "error")
-    return navigateTo('/auth/login', { replace: true })
+    return showErrorAndRedirect("Token de confirmation manquant.")
   }
 
   try {
@@ -28,16 +33,13 @@ const handleConfirmation = async () => {
 
     // Gestion de la connexion OAuth
     if (type === 'oauth') {
-      const user = usePocketBaseUser()
       if(user.value) {
         return navigateTo('/dashboard', { replace: true })
       }
     }
 
   } catch (error: any) {
-    const errorMessage = error.message || "Une erreur est survenue lors de la confirmation."
-    notify(errorMessage, "error")
-    return navigateTo('/auth/login', { replace: true })
+    return showErrorAndRedirect(error.message || "Une erreur est survenue lors de la confirmation.")
   }
 }
 
@@ -45,8 +47,7 @@ onMounted(() => {
   // Erreurs potentielles d'OAuth
   const hasError = route.query.error || route.hash.includes('error_description')
   if (hasError) {
-    notify("La connexion a été annulée ou a échoué.", "error")
-    return navigateTo('/auth/login', { replace: true })
+    return showErrorAndRedirect("La connexion a été annulée ou a échoué.")
   }
 
   handleConfirmation()

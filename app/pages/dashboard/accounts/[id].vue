@@ -1,6 +1,5 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: 'dashboard',
   title: 'Détails du compte'
 })
 
@@ -18,6 +17,24 @@ const showTransactionModal = ref(false)
 const transactionToEdit = ref<any>(null)
 const showDeleteModal = ref(false)
 const transactionToDelete = ref<any>(null)
+
+const methodIcons: Record<string, string> = {
+  card: 'lucide:credit-card',
+  transfer: 'lucide:arrow-right-left',
+  direct_debit: 'lucide:landmark',
+  cash: 'lucide:banknote',
+  check: 'lucide:scroll-text',
+  other: 'lucide:more-horizontal'
+}
+
+const methodLabels: Record<string, string> = {
+  card: 'Carte',
+  transfer: 'Virement',
+  direct_debit: 'Prélèvement',
+  cash: 'Espèces',
+  check: 'Chèque',
+  other: 'Autre'
+}
 
 // Gestion de la date (Mois en cours)
 const currentDate = ref(new Date())
@@ -79,7 +96,7 @@ const allSelected = computed(() => {
   return transactions.value.length > 0 && selectedTransactions.value.length === transactions.value.length
 })
 
-const toggleAll = (checked: boolean) => {
+const toggleAll = (checked?: boolean) => {
   if (checked) {
     selectedTransactions.value = transactions.value.map(tx => tx.id)
   } else {
@@ -87,7 +104,7 @@ const toggleAll = (checked: boolean) => {
   }
 }
 
-const toggleSelection = (id: string, checked: boolean) => {
+const toggleSelection = (id: string, checked?: boolean) => {
   if (checked) selectedTransactions.value.push(id)
   else selectedTransactions.value = selectedTransactions.value.filter(tid => tid !== id)
 }
@@ -154,7 +171,7 @@ const handleDelete = async () => {
   }
 }
 
-const togglePointed = async (tx: any, checked: boolean) => {
+const togglePointed = async (tx: any, checked?: boolean) => {
   try {
     const status = checked ? 'completed' : 'pending'
     const pointed_at = checked ? new Date().toISOString() : null
@@ -324,23 +341,10 @@ const togglePointed = async (tx: any, checked: boolean) => {
               <td class="p-3 align-top">
                 <div class="flex items-center gap-2" :title="tx.payment_method">
                   <div class="w-6 h-6 rounded-md flex items-center justify-center bg-ui-surface-muted text-ui-content-muted">
-                    <Icon v-if="tx.payment_method === 'card'" name="lucide:credit-card" class="w-3.5 h-3.5" />
-                    <Icon v-else-if="tx.payment_method === 'transfer'" name="lucide:arrow-right-left" class="w-3.5 h-3.5" />
-                    <Icon v-else-if="tx.payment_method === 'direct_debit'" name="lucide:landmark" class="w-3.5 h-3.5" />
-                    <Icon v-else-if="tx.payment_method === 'cash'" name="lucide:banknote" class="w-3.5 h-3.5" />
-                    <Icon v-else-if="tx.payment_method === 'check'" name="lucide:scroll-text" class="w-3.5 h-3.5" />
-                    <Icon v-else name="lucide:more-horizontal" class="w-3.5 h-3.5" />
+                    <Icon :name="methodIcons[tx.payment_method] || 'lucide:more-horizontal'" class="w-3.5 h-3.5" />
                   </div>
                   <span class="text-xs font-medium text-ui-content-muted hidden xl:inline-block capitalize">
-                    {{ 
-                      tx.payment_method === 'card' ? 'Carte' : 
-                      tx.payment_method === 'transfer' ? 'Virement' : 
-                      tx.payment_method === 'direct_debit' ? 'Prélèvement' : 
-                      tx.payment_method === 'cash' ? 'Espèces' : 
-                      tx.payment_method === 'check' ? 'Chèque' : 
-                      tx.payment_method === 'other' ? 'Autre' : 
-                      tx.payment_method 
-                    }}
+                    {{ methodLabels[tx.payment_method] || tx.payment_method }}
                   </span>
                 </div>
               </td>

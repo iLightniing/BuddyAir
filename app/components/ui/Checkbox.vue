@@ -1,15 +1,9 @@
 <script setup lang="ts">
-const props = defineProps<{
-  modelValue?: boolean
+const model = defineModel<boolean>()
+
+defineProps<{
   label?: string
 }>()
-
-const emit = defineEmits(['update:modelValue'])
-
-const handleChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  emit('update:modelValue', target.checked)
-}
 </script>
 
 <template>
@@ -17,8 +11,7 @@ const handleChange = (e: Event) => {
     <div class="relative flex items-center">
       <input 
         type="checkbox" 
-        :checked="modelValue" 
-        @change="handleChange"
+        v-model="model"
         class="peer appearance-none w-5 h-5 border-2 border-slate-300 dark:border-slate-600 rounded bg-ui-surface checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer hover:border-blue-400" 
       />
       <Icon 

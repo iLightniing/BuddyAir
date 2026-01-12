@@ -19,31 +19,27 @@ const form = ref({
   balanceType: 'credit' // 'credit' (+) ou 'debit' (-)
 })
 
-const banks = computed(() => {
-  const list = banksList.map(b => ({
+const banks = [
+  ...banksList.map(b => ({
     label: b.nom,
     value: b.nom
-  })).sort((a, b) => a.label.localeCompare(b.label))
-  
-  return [...list, { label: 'Autre', value: 'Autre' }]
-})
+  })).sort((a, b) => a.label.localeCompare(b.label)),
+  { label: 'Autre', value: 'Autre' }
+]
 
 const types = [
   { label: 'Débit immédiat', value: 'immediate' },
   { label: 'Débit différé', value: 'deferred' }
 ]
-
 const groups = [
   { label: 'Compte courant', value: 'current' },
   { label: 'Compte Épargne', value: 'savings' },
   { label: 'Compte Crédit', value: 'credit' }
 ]
-
 const currencies = [
   { label: 'Euro (€)', value: 'EUR' },
   { label: 'Dollar ($)', value: 'USD' }
 ]
-
 const balanceOptions = [
   { label: 'Créditeur (+)', value: 'credit', activeClass: 'bg-ui-surface shadow-sm text-emerald-500' },
   { label: 'Débiteur (-)', value: 'debit', activeClass: 'bg-ui-surface shadow-sm text-red-500' }
@@ -70,7 +66,7 @@ watch(() => props.show, async (isOpen) => {
     } else {
     form.value = {
       name: '',
-      bank: banks.value[0]?.value || 'Autre',
+      bank: banks[0]?.value || 'Autre',
       type: 'immediate',
       group: 'current',
       currency: 'EUR',

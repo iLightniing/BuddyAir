@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{

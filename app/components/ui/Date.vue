@@ -1,26 +1,25 @@
 <script setup lang="ts">
+const model = defineModel<string>()
+
 const props = defineProps<{
-  modelValue?: string
   label?: string
   required?: boolean
 }>()
-
-const emit = defineEmits(['update:modelValue'])
 
 const isOpen = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
 const navigationDate = ref(new Date())
 
 // Initialisation de la date de navigation
-watch(() => props.modelValue, (val) => {
+watch(model, (val) => {
   if (val) {
     navigationDate.value = new Date(val)
   }
 }, { immediate: true })
 
 const formattedValue = computed(() => {
-  if (!props.modelValue) return ''
-  return new Date(props.modelValue).toLocaleDateString('fr-FR', { 
+  if (!model.value) return ''
+  return new Date(model.value).toLocaleDateString('fr-FR', { 
     day: '2-digit', 
     month: '2-digit', 
     year: 'numeric' 
@@ -58,11 +57,11 @@ const selectDate = (date: Date) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
-  emit('update:modelValue', `${year}-${month}-${day}`)
+  model.value = `${year}-${month}-${day}`
   isOpen.value = false
 }
 
-const isSelected = (date: Date) => props.modelValue && new Date(props.modelValue).toDateString() === date.toDateString()
+const isSelected = (date: Date) => model.value && new Date(model.value).toDateString() === date.toDateString()
 const isToday = (date: Date) => date.toDateString() === new Date().toDateString()
 
 const handleClickOutside = (event: MouseEvent) => {
@@ -90,7 +89,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
       <Icon name="lucide:calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ui-content-muted pointer-events-none" />
       
       <!-- Bouton Effacer -->
-      <button v-if="modelValue && !required" @click.stop="$emit('update:modelValue', '')" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-ui-content-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all" title="Effacer la date">
+      <button v-if="model && !required" @click.stop="model = ''" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-ui-content-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all" title="Effacer la date">
         <Icon name="lucide:x" class="w-3.5 h-3.5" />
       </button>
       

@@ -1,3 +1,12 @@
+const PATHS = {
+  HOME: '/',
+  LOGIN: '/auth/login',
+  DASHBOARD: '/dashboard',
+  CONFIRM: '/confirm',
+  AUTH: '/auth',
+  UPDATE_PASSWORD: '/auth/update-password'
+}
+
 export default defineNuxtRouteMiddleware((to) => {
   const user = usePocketBaseUser()
 

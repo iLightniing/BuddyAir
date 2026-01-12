@@ -1,6 +1,5 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: 'dashboard',
   title: 'Mes Comptes'
 })
 
@@ -8,6 +7,7 @@ import { useDragAndDrop } from '@formkit/drag-and-drop/vue'
 import { animations } from '@formkit/drag-and-drop'
 
 const pb = usePocketBase()
+const { notify } = useNotification()
 const loading = ref(true)
 const showModal = ref(false)
 const isEditMode = ref(false)
@@ -55,7 +55,7 @@ const confirmDelete = async () => {
     showDeleteModal.value = false
     accountToDelete.value = null
   } catch (error) {
-    alert('Erreur lors de la suppression')
+    notify('Erreur lors de la suppression', 'error')
   }
 }
 

@@ -2,6 +2,7 @@
 const route = useRoute()
 
 useHead({
+  title: computed(() => route.meta.title as string),
   titleTemplate: (titleChunk) => {
     return titleChunk ? `${titleChunk} - BuddyAir` : 'BuddyAir | Votre épargne prend son envol'
   }
@@ -13,14 +14,14 @@ useHead({
     <UiNotification />
 
     <!-- Background Image Layer (Immortel) -->
-    <div class="fixed inset-0 bg-app-wallpaper bg-cover bg-center blur-md scale-110 opacity-60" style="z-index: 0;"></div>
+    <div class="fixed inset-0 bg-app-wallpaper bg-cover bg-center blur-md scale-110 opacity-60 z-0"></div>
 
     <!-- Snow Effect Layer (Immortel) -->
     <ClientOnly>
-      <UiParticles effect="snow" style="z-index: 10;" />
+      <UiParticles effect="snow" class="z-10" />
     </ClientOnly>
 
-    <main class="relative min-h-screen" style="z-index: 20;">
+    <main class="relative min-h-screen z-20">
       <NuxtLayout>
         <!-- La page-key garantit que la transition se déclenche à chaque changement de route -->
         <NuxtPage :page-key="route.path" />

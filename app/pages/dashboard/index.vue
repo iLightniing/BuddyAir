@@ -31,6 +31,14 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+const getTransactionIcon = (type: string) => type === 'income' ? 'lucide:arrow-down-left' : 'lucide:arrow-up-right'
+
+const getTransactionClass = (type: string) => {
+  return type === 'income' 
+    ? 'bg-emerald-50 border-emerald-100 text-emerald-600' 
+    : 'bg-ui-surface-muted border-ui-border text-ui-content-muted'
+}
 </script>
 
 <template>
@@ -111,9 +119,8 @@ onMounted(async () => {
           :class="index !== recentTransactions.length - 1 ? 'border-b border-ui-border' : ''"
         >
           <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center border"
-              :class="tx.type === 'income' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-ui-surface-muted border-ui-border text-ui-content-muted'">
-              <Icon :name="tx.type === 'income' ? 'lucide:arrow-down-left' : 'lucide:arrow-up-right'" class="w-5 h-5" />
+            <div class="w-10 h-10 rounded-full flex items-center justify-center border" :class="getTransactionClass(tx.type)">
+              <Icon :name="getTransactionIcon(tx.type)" class="w-5 h-5" />
             </div>
             <div class="min-w-0 flex-1">
               <p class="font-bold text-ui-content text-sm truncate">{{ tx.description || 'Sans description' }}</p>

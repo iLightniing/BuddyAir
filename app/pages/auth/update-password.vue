@@ -54,7 +54,7 @@ const handleInvalid = (e: Event) => {
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col w-full max-w-sm mx-auto">
     <form class="space-y-6" @submit.prevent="handleUpdate" @invalid.capture="handleInvalid" novalidate>
       <p class="text-slate-600 text-sm text-center mb-4 italic">
         Veuillez saisir votre nouveau mot de passe pour reprendre votre envol.

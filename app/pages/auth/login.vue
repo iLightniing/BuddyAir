@@ -85,7 +85,7 @@ const handleInvalid = (e: Event) => {
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col w-full max-w-sm mx-auto">
     <!-- novalidate désactive les bulles d'erreur natives du navigateur -->
     <form class="space-y-6" @submit.prevent="handleLogin" @invalid.capture="handleInvalid" novalidate>
       <UiInput v-model="form.email" label="Identifiant" type="email" placeholder="votre@email.com" required />

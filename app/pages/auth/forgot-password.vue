@@ -30,7 +30,7 @@ const handleInvalid = (e: Event) => {
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col w-full max-w-sm mx-auto">
     <!-- Forgot Password Form -->
     <form class="space-y-8" @submit.prevent="handleReset" @invalid.capture="handleInvalid" novalidate>
       <p class="text-slate-600 text-sm text-center mb-4 italic">

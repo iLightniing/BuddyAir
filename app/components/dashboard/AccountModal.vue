@@ -64,7 +64,7 @@ watch(() => props.show, async (isOpen) => {
       
       // Vérification s'il y a des transactions (getList avec limit=1 pour optimiser)
       const result = await pb.collection('transactions').getList(1, 1, {
-        filter: `account_id = "${props.account.id}"`
+        filter: `account = "${props.account.id}"`
       })
       isBalanceLocked.value = result.totalItems > 0
     } else {

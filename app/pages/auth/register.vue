@@ -16,7 +16,7 @@ const modalStep = ref('')
 const modalMessage = ref('')
 
 const form = ref({
-  username: '',
+  name: '',
   email: '',
   password: '',
   confirmPassword: ''
@@ -46,7 +46,8 @@ const handleRegister = async () => {
     // 1. Inscription dans PocketBase (Collection 'users')
     // PocketBase requiert 'passwordConfirm' par défaut
     const data = {
-      username: form.value.username,
+      username: form.value.name.toLowerCase().replace(/\s+/g, '') + Math.floor(Math.random() * 10000),
+      name: form.value.name,
       email: form.value.email,
       password: form.value.password,
       passwordConfirm: form.value.confirmPassword,
@@ -84,10 +85,10 @@ const closeModal = () => {
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col w-full max-w-sm mx-auto">
     <!-- Register Form -->
     <form class="space-y-2" @submit.prevent="handleRegister" @invalid.capture="handleInvalid" novalidate>
-      <UiInput v-model="form.username" label="Nom d'utilisateur" placeholder="Buddy_Aventurier" required />
+      <UiInput v-model="form.name" label="Nom d'utilisateur" placeholder="Buddy Aventurier" required />
       <UiInput v-model="form.email" label="Adresse Email" type="email" placeholder="votre@email.com" required />
       <UiInput v-model="form.password" label="Mot de passe" type="password" placeholder="••••••••" required />
       <UiInput v-model="form.confirmPassword" label="Confirmation" type="password" placeholder="••••••••" required />
@@ -107,7 +108,7 @@ const closeModal = () => {
 
     <!-- Modale de traitement -->
     <UiModal :show="showModal">
-      <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-xl shadow-2xl max-w-md w-full text-center">
+      <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 sm:p-6 rounded-xl shadow-2xl max-w-md w-full text-center">
         
         <!-- État : Traitement -->
         <div v-if="modalStatus === 'processing'" class="space-y-6 py-4">

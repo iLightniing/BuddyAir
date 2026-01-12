@@ -70,6 +70,12 @@ const updateOrder = async () => {
     console.error("Erreur sauvegarde ordre:", e)
   }
 }
+
+const handleCardClick = (acc: any) => {
+  if (!isEditMode.value) {
+    navigateTo(`/dashboard/accounts/${acc.id}`)
+  }
+}
 </script>
 <template>
   <div class="space-y-6 min-h-[400px]">
@@ -81,6 +87,10 @@ const updateOrder = async () => {
     <div v-show="!loading" class="space-y-6">
         <!-- Barre d'actions -->
         <div class="flex justify-end items-center gap-3">
+          <button disabled class="inline-flex items-center gap-2 px-4 py-2 bg-ui-surface-muted text-ui-content-muted/50 rounded-md border border-ui-border/50 cursor-not-allowed text-xs font-bold transition-all shadow-sm" title="Bientôt disponible">
+            <Icon name="lucide:calendar-clock" class="w-4 h-4" />
+            Échéancier
+          </button>
           <button 
             v-if="accounts.length > 0"
             @click="isEditMode = !isEditMode"
@@ -107,9 +117,8 @@ const updateOrder = async () => {
             :key="acc.id"
             class="h-full"
           >
-            <component 
-              :is="isEditMode ? 'div' : 'NuxtLink'"
-              :to="!isEditMode ? `/dashboard/accounts/${acc.id}` : undefined"
+            <div 
+              @click="handleCardClick(acc)"
               class="relative overflow-hidden p-6 rounded-2xl transition-all duration-300 group border h-full block"
               :class="[
                 isEditMode ? 'shake-animation cursor-grab active:cursor-grabbing drag-handle' : 'hover:-translate-y-1 hover:shadow-xl cursor-pointer',
@@ -160,11 +169,14 @@ const updateOrder = async () => {
 
               <!-- Footer -->
               <div class="mt-4 pt-4 border-t border-ui-border flex justify-between items-center">
-                <h3 class="font-bold text-sm truncate max-w-[60%] text-ui-content">{{ acc.name }}</h3>
-                <span class="text-xs font-mono text-ui-content-muted tracking-wider">•••• {{ acc.id.substring(0, 4) }}</span>
+                <div class="flex flex-col min-w-0">
+                  <h3 class="font-bold text-sm truncate text-ui-content">{{ acc.name }}</h3>
+                  <span class="text-xs font-mono text-ui-content-muted tracking-wider">•••• {{ acc.id.substring(0, 4) }}</span>
+                </div>
+                <Icon v-if="!isEditMode" name="lucide:chevron-right" class="w-5 h-5 text-ui-content-muted group-hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100" />
               </div>
             </div>
-            </component>
+            </div>
           </div>
         </div>
 

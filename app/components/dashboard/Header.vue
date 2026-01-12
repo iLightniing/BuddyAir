@@ -55,7 +55,7 @@ const weather = ref({ temp: 4, icon: 'lucide:cloud-snow', label: 'Ciel voilé' }
     <!-- Gauche : Salutations -->
     <div class="flex items-center gap-3">
       <span class="text-sm font-black text-ui-content tracking-tight whitespace-nowrap">
-        Bonjour, {{ user?.username || 'Aventurier' }}
+        Bonjour, {{ user?.name || 'Aventurier' }}
       </span>
     </div>
 

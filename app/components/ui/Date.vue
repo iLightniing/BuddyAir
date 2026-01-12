@@ -73,14 +73,14 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 </script>
 
 <template>
-  <div class="flex flex-col gap-1.5" ref="containerRef">
-    <label v-if="label" class="text-[10px] font-black text-ui-content-muted uppercase tracking-widest ml-1">
+  <div class="space-y-2" ref="containerRef">
+    <label v-if="label" class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1">
       {{ label }} <span v-if="required" class="text-red-500">*</span>
     </label>
     <div class="relative group">
       <div 
         @click="isOpen = !isOpen"
-        class="w-full bg-ui-surface hover:bg-ui-surface-muted border-2 border-ui-border rounded-md pl-10 pr-8 py-2.5 text-sm font-bold text-ui-content transition-all cursor-pointer flex items-center min-h-[44px]"
+        class="w-full bg-ui-surface hover:bg-ui-surface-muted border border-ui-border rounded-md pl-10 pr-8 py-2 text-sm font-bold text-ui-content transition-all cursor-pointer flex items-center h-[40px]"
         :class="isOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : ''"
       >
         <span v-if="formattedValue">{{ formattedValue }}</span>

@@ -207,19 +207,19 @@ const handleSubmit = async () => {
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="space-y-6">
+      <form @submit.prevent="handleSubmit" class="space-y-8">
         <!-- Ligne 1 : Type & Dates -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="space-y-1.5">
-            <label class="text-[10px] font-black text-ui-content-muted uppercase tracking-widest ml-1">Type</label>
-            <div class="grid grid-cols-2 gap-2 p-1 bg-ui-surface-muted rounded-lg border border-ui-border">
+          <div class="space-y-2">
+            <label class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1">Type</label>
+            <div class="grid grid-cols-2 gap-1 p-1 bg-ui-surface-muted rounded-lg border border-ui-border h-[40px]">
               <button 
                 v-for="opt in typeOptions" 
                 :key="opt.value"
                 type="button"
                 @click="form.type = opt.value"
-                class="py-2 text-sm font-bold rounded-md transition-all border border-transparent"
-                :class="form.type === opt.value ? opt.activeClass : 'text-ui-content-muted hover:text-ui-content'"
+                class="flex items-center justify-center text-sm font-bold rounded-md transition-all border border-transparent"
+                :class="form.type === opt.value ? opt.activeClass + ' shadow-sm' : 'text-ui-content-muted hover:text-ui-content hover:bg-white/50'"
               >
                 {{ opt.label }}
               </button>
@@ -232,9 +232,9 @@ const handleSubmit = async () => {
         </div>
 
         <!-- Ligne 2 : Montant & Paiement -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
           <div>
-            <label class="text-[10px] font-black text-ui-content-muted uppercase tracking-widest ml-1 mb-2 block">Montant</label>
+            <label class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1 mb-2 block">Montant</label>
             <div class="relative group">
               <input 
                 v-model="form.amount" 
@@ -251,17 +251,19 @@ const handleSubmit = async () => {
           <UiSelect v-model="form.payment_method" label="Moyen de paiement" :options="paymentMethods" />
         </div>
 
+        <!-- Virement : Compte cible -->
+        <div v-if="form.payment_method === 'transfer' && !transaction" class="animate-in slide-in-from-top-2 fade-in duration-200">
+          <UiSelect v-model="form.transfer_account" label="Vers le compte" :options="availableAccounts" placeholder="Sélectionner un compte..." />
+        </div>
+
         <!-- Ligne 3 : Catégorisation -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <UiSelect v-model="form.category" label="Catégorie" :options="categoryOptions" />
           <UiSelect v-model="form.sub_category" label="Sous-catégorie" :options="subCategoryOptions" placeholder="Sélectionner..." />
         </div>
 
-        <!-- Ligne 4 : Description & Virement -->
+        <!-- Ligne 4 : Description -->
         <div class="space-y-6">
-          <div v-if="form.payment_method === 'transfer' && !transaction" class="animate-in slide-in-from-top-2 fade-in duration-200">
-            <UiSelect v-model="form.transfer_account" label="Vers le compte" :options="availableAccounts" placeholder="Sélectionner un compte..." />
-          </div>
           <UiInput v-model="form.description" label="Description" placeholder="Ex: Courses Carrefour" />
         </div>
 

@@ -44,7 +44,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
       <button
         type="button"
         @click="toggle"
-        class="w-full px-5 py-3.5 bg-ui-surface border border-ui-border rounded-md text-ui-content text-left flex items-center justify-between hover:border-blue-400/50 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 transition-all text-sm cursor-pointer shadow-xs"
+        class="w-full px-5 py-2.5 bg-ui-surface border border-ui-border rounded-md text-ui-content text-left flex items-center justify-between hover:border-blue-400/50 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 transition-all text-sm cursor-pointer shadow-xs min-h-[44px]"
       >
         <span :class="{ 'text-ui-content-muted/50': !model }">{{ selectedLabel }}</span>
         <Icon 

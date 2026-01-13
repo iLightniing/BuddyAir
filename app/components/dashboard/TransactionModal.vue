@@ -3,7 +3,8 @@ const props = defineProps<{
   show: boolean, 
   transaction?: any,
   initialData?: any,
-  accountId: string
+  accountId: string,
+  accountGroup?: string
 }>()
 const emit = defineEmits(['close', 'success', 'delete'])
 
@@ -44,10 +45,18 @@ const paymentMethods = [
   { label: 'Autre', value: 'other' }
 ]
 
-const typeOptions = [
-  { label: 'Dépense', value: 'expense', activeClass: 'bg-red-50 text-red-600 border-red-200 shadow-sm' },
-  { label: 'Revenu', value: 'income', activeClass: 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm' }
-]
+const typeOptions = computed(() => {
+  if (props.accountGroup === 'credit') {
+    return [
+      { label: 'Remboursement', value: 'income', activeClass: 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm' },
+      { label: 'Frais / Déblocage', value: 'expense', activeClass: 'bg-red-50 text-red-600 border-red-200 shadow-sm' }
+    ]
+  }
+  return [
+    { label: 'Dépense', value: 'expense', activeClass: 'bg-red-50 text-red-600 border-red-200 shadow-sm' },
+    { label: 'Revenu', value: 'income', activeClass: 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm' }
+  ]
+})
 
 const isInitializing = ref(false)
 const availableAccounts = ref<any[]>([])
@@ -89,7 +98,7 @@ watch(() => props.show, (isOpen) => {
       }
     } else {
       form.value = {
-        type: 'expense',
+        type: props.accountGroup === 'credit' ? 'income' : 'expense',
         amount: '',
         date: new Date().toISOString().split('T')[0],
         category: 'Autre',
@@ -110,6 +119,13 @@ watch(() => props.show, (isOpen) => {
 watch(() => form.value.category, () => {
   if (!isInitializing.value) {
     form.value.sub_category = ''
+  }
+})
+
+// Force le mode virement pour les remboursements de crédit
+watch(() => form.value.type, (newType) => {
+  if (props.accountGroup === 'credit' && newType === 'income') {
+    form.value.payment_method = 'transfer'
   }
 })
 
@@ -248,12 +264,12 @@ const handleSubmit = async () => {
               <span class="absolute right-0 top-1/2 -translate-y-1/2 text-ui-content-muted font-bold pointer-events-none">EUR</span>
             </div>
           </div>
-          <UiSelect v-model="form.payment_method" label="Moyen de paiement" :options="paymentMethods" />
+          <UiSelect v-if="!(accountGroup === 'credit' && form.type === 'income')" v-model="form.payment_method" label="Moyen de paiement" :options="paymentMethods" />
         </div>
 
         <!-- Virement : Compte cible -->
         <div v-if="form.payment_method === 'transfer' && !transaction" class="animate-in slide-in-from-top-2 fade-in duration-200">
-          <UiSelect v-model="form.transfer_account" label="Vers le compte" :options="availableAccounts" placeholder="Sélectionner un compte..." />
+          <UiSelect v-model="form.transfer_account" :label="accountGroup === 'credit' ? 'Depuis le compte (Débit)' : 'Vers le compte'" :options="availableAccounts" placeholder="Sélectionner un compte..." />
         </div>
 
         <!-- Ligne 3 : Catégorisation -->

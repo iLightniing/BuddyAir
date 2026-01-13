@@ -10,7 +10,6 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@formkit/drag-and-drop": "^0.5.3",
     "@nuxt/eslint": "^1.12.1",
     "@nuxt/fonts": "^0.12.1",
     "@nuxt/hints": "^1.0.0-alpha.5",
@@ -23,6 +22,7 @@
     "tailwindcss": "^4.1.18",
     "vanilla-tilt": "^1.8.1",
     "vue": "^3.5.26",
+    "vue-draggable-plus": "^0.6.1",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {

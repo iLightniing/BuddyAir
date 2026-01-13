@@ -4,6 +4,7 @@ const props = defineProps<{
   loading: boolean
   selectedTransactions: string[]
   currency: string
+  accountGroup?: string
 }>()
 
 const emit = defineEmits(['update:selectedTransactions', 'edit', 'delete', 'toggle-pointed', 'duplicate'])
@@ -68,10 +69,10 @@ const toggleSelection = (id: string, checked?: boolean) => {
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest">Description</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest">Catégorie</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest w-24">Type</th>
-              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">Débit</th>
-              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">Crédit</th>
+              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Augmentation' : 'Débit' }}</th>
+              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Remboursement' : 'Crédit' }}</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-center w-16">Pointé</th>
-              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">Solde</th>
+              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Capital Restant' : 'Solde' }}</th>
               <th class="p-3 pr-6 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-20">Action</th>
             </tr>
           </thead>

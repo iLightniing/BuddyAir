@@ -20,6 +20,7 @@ const query = ref('')
 const selectedIndex = ref(0)
 const searchInput = ref<HTMLInputElement | null>(null)
 const accounts = ref<any[]>([])
+const transactionResults = ref<CommandItem[]>([])
 
 // --- Données ---
 const staticActions = [
@@ -84,6 +85,39 @@ watch(isOpen, (val) => {
   }
 })
 
+// --- Recherche dynamique des transactions ---
+let searchTimeout: any
+const performSearch = async (val: string) => {
+  if (!val || val.length < 2 || !user.value) {
+    transactionResults.value = []
+    return
+  }
+  
+  try {
+    const res = await pb.collection('transactions').getList(1, 5, {
+      filter: `user = "${user.value.id}" && (description ~ "${val}" || category ~ "${val}")`,
+      expand: 'account',
+      sort: '-date'
+    })
+    
+    transactionResults.value = res.items.map(tx => ({
+      id: `tx-${tx.id}`,
+      label: tx.description,
+      subLabel: `${new Date(tx.date).toLocaleDateString('fr-FR')} • ${tx.expand?.account?.name || 'Compte'} • ${tx.amount} €`,
+      icon: 'lucide:receipt',
+      type: 'transaction',
+      to: `/dashboard/accounts/${tx.account}?date=${tx.date}`
+    }))
+  } catch (e) {
+    // Silencieux
+  }
+}
+
+watch(query, (val) => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => performSearch(val), 300)
+})
+
 // --- Filtrage ---
 const filteredResults = computed<CommandItem[]>(() => {
   const q = query.value.toLowerCase()
@@ -103,7 +137,7 @@ const filteredResults = computed<CommandItem[]>(() => {
       to: `/dashboard/accounts/${acc.id}`
     }))
 
-  return [...actions, ...accountResults]
+  return [...actions, ...accountResults, ...transactionResults.value]
 })
 
 const executeAction = (item: CommandItem) => {

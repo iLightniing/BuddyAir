@@ -1,140 +1,39 @@
 <script setup lang="ts">
-import banksList from '~/data/banks.json'
-const props = defineProps<{ show: boolean, account?: any }>()
+import { useAccountForm } from '~/composables/useAccountForm'
+
+const props = defineProps<{ show: boolean, account?: any, initialGroup?: string }>()
 const emit = defineEmits(['close', 'success'])
 
-// On utilise <any> pour contourner la vérification stricte des tables connues
-const pb = usePocketBase()
-const { notify } = useNotification()
-const loading = ref(false)
-const isBalanceLocked = ref(false)
+const {
+  form, loading, isBalanceLocked, availableCurrentAccounts,
+  banks, types, groups, currencies, balanceOptions, savingsTypes,
+  handleSubmit, simulation
+} = useAccountForm(props, emit)
 
-const form = ref({
-  name: '',
-  bank: '',
-  type: 'immediate',
-  group: 'current',
-  currency: 'EUR',
-  balance: 0,
-  balanceType: 'credit' // 'credit' (+) ou 'debit' (-)
+// Titre dynamique et icône selon le groupe
+const modalTitle = computed(() => {
+  if (props.account) return 'Modifier le compte'
+  if (form.value.group === 'savings') return 'Nouveau compte épargne'
+  if (form.value.group === 'credit') return 'Nouveau crédit'
+  return 'Nouveau compte courant'
 })
 
-const banks = [
-  ...banksList.map(b => ({
-    label: b.nom,
-    value: b.nom
-  })).sort((a, b) => a.label.localeCompare(b.label)),
-  { label: 'Autre', value: 'Autre' }
-]
-
-const types = [
-  { label: 'Débit immédiat', value: 'immediate' },
-  { label: 'Débit différé', value: 'deferred' }
-]
-const groups = [
-  { label: 'Compte courant', value: 'current' },
-  { label: 'Compte Épargne', value: 'savings' },
-  { label: 'Compte Crédit', value: 'credit' }
-]
-const currencies = [
-  { label: 'Euro (€)', value: 'EUR' },
-  { label: 'Dollar ($)', value: 'USD' }
-]
-const balanceOptions = [
-  { label: 'Créditeur (+)', value: 'credit', activeClass: 'bg-ui-surface shadow-sm text-emerald-500' },
-  { label: 'Débiteur (-)', value: 'debit', activeClass: 'bg-ui-surface shadow-sm text-red-500' }
-]
-
-watch(() => props.show, async (isOpen) => {
-  if (isOpen) {
-    if (props.account) {
-      form.value = {
-        name: props.account.name,
-        bank: props.account.bank,
-        type: props.account.type,
-        group: props.account.account_group,
-        currency: props.account.currency,
-        balance: Math.abs(props.account.initial_balance),
-        balanceType: props.account.initial_balance < 0 ? 'debit' : 'credit'
-      }
-      
-      // Vérification s'il y a des transactions (getList avec limit=1 pour optimiser)
-      const result = await pb.collection('transactions').getList(1, 1, {
-        filter: `account = "${props.account.id}"`
-      })
-      isBalanceLocked.value = result.totalItems > 0
-    } else {
-    form.value = {
-      name: '',
-      bank: banks[0]?.value || 'Autre',
-      type: 'immediate',
-      group: 'current',
-      currency: 'EUR',
-      balance: 0,
-      balanceType: 'credit'
-    }
-    isBalanceLocked.value = false
-    }
-  }
+const modalIcon = computed(() => {
+  if (form.value.group === 'savings') return 'lucide:piggy-bank'
+  if (form.value.group === 'credit') return 'lucide:landmark'
+  return 'lucide:credit-card'
 })
-
-const handleSubmit = async () => {
-  // Récupération de l'utilisateur courant depuis le store PocketBase
-  const currentUser = pb.authStore.model
-
-  if (!currentUser) return
-  loading.value = true
-
-  const finalBalance = form.value.balanceType === 'debit' ? -Math.abs(form.value.balance) : Math.abs(form.value.balance)
-
-  try {
-  
-  if (props.account) {
-    const updates: any = {
-      name: form.value.name,
-      bank: form.value.bank,
-      type: form.value.type,
-      account_group: form.value.group,
-      currency: form.value.currency
-    }
-    if (!isBalanceLocked.value) {
-      updates.initial_balance = finalBalance
-      updates.current_balance = finalBalance // On reset le solde courant si on change l'initial (simplification)
-    }
-    await pb.collection('accounts').update(props.account.id, updates)
-  } else {
-    await pb.collection('accounts').create({
-      user_id: currentUser.id,
-      name: form.value.name,
-      bank: form.value.bank,
-      type: form.value.type,
-      account_group: form.value.group,
-      currency: form.value.currency,
-      initial_balance: finalBalance,
-      current_balance: finalBalance
-    })
-  }
-
-    notify(props.account ? 'Compte modifié !' : 'Compte créé avec succès !', 'success')
-    loading.value = false
-    emit('success')
-    emit('close')
-  } catch (error: any) {
-    notify(error.message, 'error')
-    loading.value = false
-  }
-}
 </script>
 
 <template>
   <UiModal :show="show">
-    <div class="bg-ui-surface border border-ui-border p-8 rounded-md shadow-2xl max-w-xl w-full">
+    <div class="bg-ui-surface border border-ui-border p-8 rounded-md shadow-2xl w-full transition-all duration-300 max-h-[90vh] overflow-y-auto" :class="form.group === 'credit' ? 'max-w-4xl' : 'max-w-xl'">
       <div class="flex items-center gap-4 mb-8">
-        <div class="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500">
-          <Icon name="lucide:wallet" class="w-6 h-6" />
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="form.group === 'credit' ? 'bg-orange-50 text-orange-600' : (form.group === 'savings' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600')">
+          <Icon :name="modalIcon" class="w-6 h-6" />
         </div>
         <div>
-          <h3 class="text-xl font-black text-ui-content tracking-tight">{{ account ? 'Modifier le compte' : 'Nouveau compte' }}</h3>
+          <h3 class="text-xl font-black text-ui-content tracking-tight">{{ modalTitle }}</h3>
           <p class="text-xs text-ui-content-muted font-medium uppercase tracking-widest">Configuration bancaire</p>
         </div>
       </div>
@@ -147,16 +46,98 @@ const handleSubmit = async () => {
           <UiSelect v-model="form.currency" label="Devise" :options="currencies" />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <!-- Options spécifiques Épargne -->
+        <div v-if="form.group === 'savings'" class="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+           <UiSelect v-model="form.savings_type" label="Type de livret" :options="savingsTypes" />
+           <div class="relative">
+              <UiInput v-model="form.interest_rate" label="Taux d'intérêt" placeholder="3.00" type="number" step="0.01" />
+              <span class="absolute right-3 top-[34px] text-xs font-bold text-ui-content-muted">%</span>
+           </div>
+        </div>
+
+        <!-- Options spécifiques Crédit -->
+        <div v-if="form.group === 'credit'" class="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-top-2">
+           <!-- Colonne Gauche : Caractéristiques -->
+           <div class="space-y-4">
+             <h4 class="text-xs font-black text-ui-content-muted uppercase tracking-widest mb-2">Caractéristiques du prêt</h4>
+             <div class="grid grid-cols-2 gap-4">
+               <div class="relative">
+                  <UiInput v-model="form.credit_amount" label="Montant" placeholder="0.00" type="number" />
+                  <span class="absolute right-3 top-[34px] text-xs font-bold text-ui-content-muted">€</span>
+               </div>
+               <div class="relative">
+                  <UiInput v-model="form.interest_rate" label="Taux" placeholder="3.00" type="number" step="0.01" />
+                  <span class="absolute right-3 top-[34px] text-xs font-bold text-ui-content-muted">%</span>
+               </div>
+             </div>
+             
+             <div class="grid grid-cols-2 gap-4">
+               <UiInput v-model="form.loan_duration" label="Durée (mois)" placeholder="240" type="number" />
+               <UiDate v-model="form.loan_start_date" label="Début" />
+             </div>
+
+            <div class="grid grid-cols-2 gap-4">
+               <div class="relative">
+                  <UiInput v-model="form.insurance_rate" label="Taux Assurance" placeholder="0.36" type="number" step="0.01" />
+                  <span class="absolute right-3 top-[34px] text-xs font-bold text-ui-content-muted">%</span>
+               </div>
+               <UiInput v-model="form.insurance_amount" label="Assurance (Fixe)" placeholder="0.00" type="number" />
+            </div>
+
+             <div class="relative">
+                <UiInput v-model="form.monthly_payment" label="Mensualité" placeholder="0.00" type="number" />
+                <span class="absolute right-3 top-[34px] text-xs font-bold text-ui-content-muted">€/mois</span>
+             </div>
+           </div>
+
+           <!-- Colonne Droite : Flux -->
+           <div class="p-5 bg-ui-surface-muted/30 rounded-xl border border-ui-border space-y-5 h-full">
+             <h4 class="text-xs font-black text-ui-content-muted uppercase tracking-widest">Flux financiers</h4>
+             
+             <!-- VEFA / Déblocage -->
+             <UiSwitch v-model="form.is_progressive_release" label="Déblocage progressif (VEFA / Travaux)" description="L'argent n'est pas versé immédiatement en totalité." />
+             
+             <div v-if="!form.is_progressive_release" class="pt-2">
+                <UiSelect v-model="form.linked_account_id" label="Compte de versement (Crédit)" :options="availableCurrentAccounts" placeholder="Choisir un compte..." :disabled="!!account" />
+             </div>
+
+             <!-- Remboursement -->
+             <UiSelect v-model="form.repayment_account_id" label="Compte de prélèvement (Débit)" :options="availableCurrentAccounts" placeholder="Choisir un compte..." />
+             
+             <div v-if="form.repayment_account_id && !account">
+                <UiSwitch v-model="form.create_repayment_schedule" label="Créer l'échéance mensuelle automatiquement" />
+             </div>
+
+             <!-- Simulation Pro -->
+             <div v-if="simulation" class="mt-4 pt-4 border-t border-ui-border">
+                <div class="flex justify-between items-center mb-1">
+                   <span class="text-xs text-ui-content-muted">Mensualité théorique</span>
+                   <span class="text-sm font-bold text-ui-content">{{ simulation.monthly.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) }}</span>
+                </div>
+               <div class="flex justify-between items-center mb-1" v-if="simulation.monthlyInsurance > 0">
+                  <span class="text-xs text-ui-content-muted">Dont assurance</span>
+                  <span class="text-xs font-bold text-ui-content-muted">{{ simulation.monthlyInsurance.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) }}</span>
+               </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-xs text-ui-content-muted">Coût total crédit</span>
+                   <span class="text-xs font-bold text-red-500">{{ simulation.totalCost.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) }}</span>
+                </div>
+             </div>
+           </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4" v-if="form.group === 'current'">
           <UiSelect v-model="form.type" label="Type de débit" :options="types" />
-          <UiSelect v-model="form.group" label="Catégorie" :options="groups" />
+          <!-- On cache le sélecteur de groupe si on est en mode création spécifique, mais on le garde pour l'édition -->
+          <UiSelect v-model="form.group" label="Catégorie" :options="groups" :disabled="!account" />
         </div>
 
         <div class="grid grid-cols-3 gap-4 items-end">
           <div class="col-span-2">
-            <UiInput v-model.number="form.balance" type="number" step="0.01" label="Solde initial" placeholder="0.00" required :disabled="isBalanceLocked" :title="isBalanceLocked ? 'Modification impossible : des transactions existent' : ''" />
+            <UiInput v-model.number="form.balance" type="number" step="0.01" :label="form.group === 'credit' ? 'Reste à rembourser' : 'Solde actuel'" placeholder="0.00" required :disabled="isBalanceLocked" :title="isBalanceLocked ? 'Modification impossible : des transactions existent' : ''" />
           </div>
-          <UiToggle v-model="form.balanceType" label="État du solde" :options="balanceOptions" />
+          <UiToggle v-if="form.group !== 'credit'" v-model="form.balanceType" label="État du solde" :options="balanceOptions" />
+          <div v-else class="h-10 flex items-center justify-center bg-red-50 text-red-600 font-bold text-xs rounded-md border border-red-100">Dette (Négatif)</div>
         </div>
 
         <div class="flex gap-3 pt-4">

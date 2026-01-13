@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { useDragAndDrop } from '@formkit/drag-and-drop/vue'
-import { animations } from '@formkit/drag-and-drop'
+import { VueDraggable } from 'vue-draggable-plus'
 
 const pb = usePocketBase()
 const { notify } = useNotification()
@@ -17,6 +16,8 @@ const newSubCategoryName = ref('')
 const showDeleteModal = ref(false)
 const categoryToDelete = ref<any>(null)
 
+const categoriesList = ref<any[]>([])
+
 const updateOrder = async () => {
   // Mise à jour de l'ordre dans la base
   const promises = categoriesList.value.map((cat, index) => {
@@ -29,13 +30,6 @@ const updateOrder = async () => {
     console.error("Erreur sauvegarde ordre", e)
   }
 }
-
-// Initialisation du Drag & Drop pour la liste principale
-const [parent, categoriesList] = useDragAndDrop<any>([], {
-  plugins: [animations()],
-  dragHandle: '.drag-handle-cat',
-  onDragend: () => updateOrder()
-})
 
 onMounted(async () => {
   await fetchCategories()
@@ -142,7 +136,13 @@ const confirmDelete = async () => {
       </UiButton>
     </div>
 
-    <div ref="parent" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <VueDraggable 
+      v-model="categoriesList"
+      :animation="150"
+      handle=".drag-handle-cat"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+      @end="updateOrder"
+    >
       <div v-for="cat in categoriesList" :key="cat.id" class="bg-ui-surface border border-ui-border rounded-xl p-4 hover:border-blue-300/50 transition-all group relative flex flex-col gap-3 shadow-sm hover:shadow-md">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3 overflow-hidden">
@@ -162,7 +162,7 @@ const confirmDelete = async () => {
           </span>
         </div>
       </div>
-    </div>
+    </VueDraggable>
 
     <!-- Modal Édition -->
     <UiModal :show="showModal">

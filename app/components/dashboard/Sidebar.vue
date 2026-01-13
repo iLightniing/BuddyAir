@@ -8,6 +8,8 @@ const navItems = [
   { icon: 'lucide:wallet', label: 'Comptes', to: '/dashboard/accounts' },
   { icon: 'lucide:pie-chart', label: 'Budget', to: '/dashboard/budget' },
   { icon: 'lucide:rocket', label: 'Projet', to: '/dashboard/projects' },
+  { icon: 'lucide:bar-chart-3', label: 'Analyses', to: '/dashboard/stats' },
+  { icon: 'lucide:user', label: 'Profil', to: '/dashboard/profile' },
   { icon: 'lucide:settings', label: 'Paramètres', to: '/dashboard/settings' },
 ]
 
@@ -68,11 +70,27 @@ const confirmLogout = async () => {
 
     <!-- Bottom Actions -->
     <div class="flex flex-col gap-6 items-center">
+      <ClientOnly>
+      <NuxtLink 
+        v-if="user?.role === 3"
+        to="/admin"
+        class="relative group flex items-center justify-center w-12 h-12 rounded-xl text-purple-600 hover:bg-purple-50 transition-all duration-300 cursor-pointer"
+      >
+        <Icon name="lucide:shield-check" class="w-6 h-6" />
+        <span class="absolute left-full ml-4 px-3 py-1.5 bg-ui-content text-ui-surface text-[10px] font-bold uppercase tracking-widest rounded-md opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+          Administration
+        </span>
+      </NuxtLink>
+      </ClientOnly>
+
       <button 
         @click="showLogoutModal = true"
-        class="flex items-center justify-center w-12 h-12 rounded-xl text-red-500 hover:bg-red-50 transition-all duration-300 cursor-pointer"
+        class="relative group flex items-center justify-center w-12 h-12 rounded-xl text-red-500 hover:bg-red-50 transition-all duration-300 cursor-pointer"
       >
         <Icon name="lucide:log-out" class="w-6 h-6" />
+        <span class="absolute left-full ml-4 px-3 py-1.5 bg-ui-content text-ui-surface text-[10px] font-bold uppercase tracking-widest rounded-md opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+          Déconnexion
+        </span>
       </button>
     </div>
 

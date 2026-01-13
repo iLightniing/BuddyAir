@@ -7,12 +7,13 @@ const id = useId()
 const props = defineProps<{
   label: string
   options: { label: string, value: string | number }[]
+  disabled?: boolean
 }>()
 
 const isOpen = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
 
-const toggle = () => isOpen.value = !isOpen.value
+const toggle = () => !props.disabled && (isOpen.value = !isOpen.value)
 const close = () => isOpen.value = false
 
 const selectOption = (val: string | number) => {
@@ -44,13 +45,14 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
       <button
         type="button"
         @click="toggle"
-        class="w-full px-5 py-2.5 bg-ui-surface border border-ui-border rounded-md text-ui-content text-left flex items-center justify-between hover:border-blue-400/50 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 transition-all text-sm cursor-pointer shadow-xs min-h-[44px]"
+        class="w-full px-5 py-2.5 bg-ui-surface border border-slate-400 rounded-md text-ui-content text-left flex items-center justify-between focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 transition-all text-sm shadow-xs h-[52px]"
+        :class="disabled ? 'opacity-60 cursor-not-allowed bg-ui-surface-muted' : 'hover:border-blue-400/50 cursor-pointer'"
       >
         <span :class="{ 'text-ui-content-muted/50': !model }">{{ selectedLabel }}</span>
         <Icon 
-          name="lucide:chevron-down" 
+          :name="disabled ? 'lucide:lock' : 'lucide:chevron-down'" 
           class="w-4 h-4 text-ui-content-muted transition-transform duration-300"
-          :class="{ 'rotate-180': isOpen }"
+          :class="{ 'rotate-180': isOpen && !disabled }"
         />
       </button>
 

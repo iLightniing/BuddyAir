@@ -1,16 +1,22 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   account: any
   isEditMode: boolean
 }>()
 
-const emit = defineEmits(['edit', 'delete', 'click'])
+const emit = defineEmits(['edit', 'delete'])
+
+const handleClick = () => {
+  if (!props.isEditMode) {
+    navigateTo(`/dashboard/accounts/${props.account.id}`)
+  }
+}
 </script>
 
 <template>
-  <div 
-    @click="emit('click', account)"
-    class="relative overflow-hidden p-6 rounded-2xl transition-all duration-300 group border h-full block"
+  <div
+    @click="handleClick"
+    class="relative overflow-hidden p-6 rounded-2xl transition-all duration-300 group border h-full block text-left"
     :class="[
       isEditMode ? 'shake-animation cursor-grab active:cursor-grabbing drag-handle' : 'hover:-translate-y-1 hover:shadow-xl cursor-pointer',
       'bg-ui-surface border-ui-border text-ui-content shadow-sm hover:border-blue-300/50'
@@ -36,11 +42,11 @@ const emit = defineEmits(['edit', 'delete', 'click'])
         </div>
         
         <!-- Actions (Edit Mode) or Icon (View Mode) -->
-        <div v-if="isEditMode" class="flex gap-2">
-          <button @click.stop="emit('edit', account)" class="w-9 h-9 bg-white/90 backdrop-blur-md rounded-full shadow-sm border border-blue-200 flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-all hover:scale-110" title="Modifier">
+        <div v-if="isEditMode" class="flex gap-2 relative z-20">
+          <button @click.stop="emit('edit', account)" @pointerdown.stop class="w-9 h-9 bg-white/90 backdrop-blur-md rounded-full shadow-sm border border-blue-200 flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-all hover:scale-110" title="Modifier">
             <Icon name="lucide:pencil" class="w-4 h-4" />
           </button>
-          <button @click.stop="emit('delete', account)" class="w-9 h-9 bg-white/90 backdrop-blur-md rounded-full shadow-sm border border-red-200 flex items-center justify-center text-red-600 hover:bg-red-50 transition-all hover:scale-110" title="Supprimer">
+          <button @click.stop="emit('delete', account)" @pointerdown.stop class="w-9 h-9 bg-white/90 backdrop-blur-md rounded-full shadow-sm border border-red-200 flex items-center justify-center text-red-600 hover:bg-red-50 transition-all hover:scale-110" title="Supprimer">
             <Icon name="lucide:trash-2" class="w-4 h-4" />
           </button>
         </div>

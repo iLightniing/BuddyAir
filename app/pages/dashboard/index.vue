@@ -15,16 +15,21 @@ onMounted(async () => {
   loading.value = true
   try {
     // 1. Récupérer les comptes pour le solde total
-    accounts.value = await pb.collection('accounts').getFullList({ sort: '+order' })
+    const accountsData = await pb.collection('accounts').getFullList({ 
+      sort: '+order',
+      requestKey: null
+    })
+    accounts.value = accountsData.map(r => ({ ...r }))
     totalBalance.value = accounts.value.reduce((sum, acc) => sum + acc.current_balance, 0)
 
     // 2. Récupérer les dernières transactions (tous comptes confondus)
     // On utilise 'expand' pour récupérer les infos du compte lié (nom, banque)
     const result = await pb.collection('transactions').getList(1, 5, {
       sort: '-date,-created',
-      expand: 'account'
+      expand: 'account',
+      requestKey: null
     })
-    recentTransactions.value = result.items
+    recentTransactions.value = result.items.map(r => ({ ...r }))
   } catch (e) {
     console.error(e)
   } finally {
@@ -57,11 +62,11 @@ const getTransactionClass = (type: string) => {
           </h2>
           
           <div class="flex flex-col sm:flex-row gap-3">
-            <NuxtLink to="/dashboard/accounts" class="px-5 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+            <NuxtLink to="/dashboard/accounts" class="px-5 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-xl text-sm font-bold transition-all flex items-center gap-2 hover:scale-105 active:scale-95">
               <Icon name="lucide:wallet" class="w-4 h-4" />
               Gérer mes comptes
             </NuxtLink>
-            <button class="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
+            <button class="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 hover:scale-105 active:scale-95">
               <Icon name="lucide:plus" class="w-4 h-4" />
               Virement rapide
             </button>
@@ -69,8 +74,13 @@ const getTransactionClass = (type: string) => {
         </div>
       </div>
 
-      <!-- Widget Résumé -->
-      <div class="bg-ui-surface border border-ui-border rounded-3xl p-6 flex flex-col justify-between">
+      <!-- Widget Budget -->
+      <DashboardBudgetWidget />
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Widget Comptes -->
+      <div class="bg-ui-surface border border-ui-border rounded-3xl p-6 flex flex-col justify-between h-full">
         <div>
           <h3 class="text-lg font-black text-ui-content mb-1">Mes Comptes</h3>
           <p class="text-sm text-ui-content-muted">{{ accounts.length }} comptes actifs</p>
@@ -99,10 +109,9 @@ const getTransactionClass = (type: string) => {
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Dernières Transactions -->
-    <div class="space-y-4">
+      <!-- Dernières Transactions -->
+      <div class="md:col-span-2 space-y-4">
       <div class="flex items-center justify-between px-1">
         <h3 class="text-xl font-black text-ui-content tracking-tight">Dernières opérations</h3>
         <button class="text-xs font-bold text-blue-500 hover:text-blue-600 uppercase tracking-wider">Tout voir</button>
@@ -112,7 +121,7 @@ const getTransactionClass = (type: string) => {
         <Icon name="lucide:loader-2" class="w-8 h-8 text-blue-500 animate-spin" />
       </div>
 
-      <div v-else-if="recentTransactions.length > 0" class="bg-ui-surface border border-ui-border rounded-2xl overflow-hidden shadow-sm">
+      <div v-else-if="recentTransactions.length > 0" class="bg-ui-surface border border-ui-border rounded-3xl overflow-hidden shadow-sm">
         <NuxtLink v-for="(tx, index) in recentTransactions" :key="tx.id" 
           :to="`/dashboard/accounts/${tx.account}`"
           class="flex items-center justify-between p-5 hover:bg-ui-surface-muted transition-colors group cursor-pointer"
@@ -123,7 +132,15 @@ const getTransactionClass = (type: string) => {
               <Icon :name="getTransactionIcon(tx.type)" class="w-5 h-5" />
             </div>
             <div class="min-w-0 flex-1">
-              <p class="font-bold text-ui-content text-sm truncate">{{ tx.description || 'Sans description' }}</p>
+              <div class="flex items-center gap-2">
+                <p class="font-bold text-ui-content text-sm truncate">{{ tx.description || 'Sans description' }}</p>
+                <div v-if="tx.is_recurring" class="flex items-center justify-center w-5 h-5 rounded-full bg-purple-50 text-purple-600 font-black text-xs" title="Transaction récurrente">
+                  R
+                </div>
+                <div v-if="tx.payment_method === 'transfer'" class="flex items-center justify-center w-5 h-5 rounded-full bg-orange-50 text-orange-600" title="Virement inter-compte">
+                  <Icon name="lucide:arrow-right-left" class="w-3 h-3" />
+                </div>
+              </div>
               <p class="text-xs text-ui-content-muted flex items-center gap-1">
                 {{ new Date(tx.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) }}
                 <span class="w-1 h-1 rounded-full bg-ui-border"></span>
@@ -137,9 +154,10 @@ const getTransactionClass = (type: string) => {
         </NuxtLink>
       </div>
 
-      <div v-else class="text-center py-12 bg-ui-surface border border-ui-border rounded-2xl border-dashed">
+      <div v-else class="text-center py-12 bg-ui-surface border border-ui-border rounded-3xl border-dashed">
         <p class="text-ui-content-muted text-sm">Aucune transaction récente.</p>
       </div>
     </div>
+  </div>
   </div>
 </template>

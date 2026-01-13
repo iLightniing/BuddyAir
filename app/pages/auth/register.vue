@@ -50,6 +50,7 @@ const handleRegister = async () => {
       email: form.value.email,
       password: form.value.password,
       passwordConfirm: form.value.confirmPassword,
+      role: 1, // 1 = Free, 2 = Premium, 3 = Admin
     }
 
     await pb.collection('users').create(data)

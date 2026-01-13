@@ -2,9 +2,10 @@
 const props = defineProps<{ 
   show: boolean, 
   transaction?: any,
+  initialData?: any,
   accountId: string
 }>()
-const emit = defineEmits(['close', 'success'])
+const emit = defineEmits(['close', 'success', 'delete'])
 
 const pb = usePocketBase()
 const { notify } = useNotification()
@@ -19,27 +20,19 @@ const form = ref({
   payment_method: 'card',
   transfer_account: '',
   description: '',
-  pointed_at: ''
+  pointed_at: '',
+  is_recurring: false
 })
 
-const categoriesData: Record<string, string[]> = {
-  'Alimentation': ['Courses', 'Restaurant', 'Fast Food', 'Boulangerie', 'Autre'],
-  'Logement': ['Loyer', 'Électricité', 'Eau', 'Internet', 'Assurance', 'Travaux', 'Autre'],
-  'Transport': ['Carburant', 'Transport en commun', 'Entretien', 'Assurance', 'Parking', 'Péage', 'Autre'],
-  'Loisirs': ['Sorties', 'Sport', 'Voyage', 'Streaming', 'Jeux vidéo', 'Autre'],
-  'Santé': ['Médecin', 'Pharmacie', 'Mutuelle', 'Spécialiste', 'Autre'],
-  'Shopping': ['Vêtements', 'Électronique', 'Maison', 'Cadeaux', 'Autre'],
-  'Salaire': ['Salaire', 'Prime', 'Remboursement', 'Autre'],
-  'Services': ['Banque', 'Frais', 'Abonnement', 'Autre'],
-  'Autre': ['Autre']
-}
+const { categories, fetchCategories, categoryOptions } = useCategories()
 
-const categoryOptions = Object.keys(categoriesData).map(c => ({ label: c, value: c }))
+onMounted(fetchCategories)
 
 const subCategoryOptions = computed(() => {
   const category = form.value.category
-  const subCategories = categoriesData[category]
-  return subCategories ? subCategories.map(s => ({ label: s, value: s })) : []
+  const cat = categories.value.find(c => c.name === category)
+  // On gère le cas où sub_categories est un tableau de chaînes
+  return cat && cat.sub_categories ? cat.sub_categories.map((s: string) => ({ label: s, value: s })) : []
 })
 
 const paymentMethods = [
@@ -77,17 +70,22 @@ watch(() => props.show, (isOpen) => {
   if (isOpen) {
     fetchAccounts()
     isInitializing.value = true
-    if (props.transaction) {
+    
+    const source = props.transaction || props.initialData
+    if (source) {
       form.value = {
-        type: props.transaction.type,
-        amount: Math.abs(props.transaction.amount).toString(),
-        date: props.transaction.date.split('T')[0],
-        category: props.transaction.category,
-        sub_category: props.transaction.sub_category || '',
-        payment_method: props.transaction.payment_method || 'card',
+        type: source.type,
+        amount: Math.abs(source.amount).toString(),
+        // Si c'est une duplication (initialData), on met la date d'aujourd'hui, sinon la date originale
+        date: props.transaction ? source.date.split('T')[0] : new Date().toISOString().split('T')[0],
+        category: source.category,
+        sub_category: source.sub_category || '',
+        payment_method: source.payment_method || 'card',
         transfer_account: '', // En édition, on ne gère pas le changement de compte lié pour l'instant
-        description: props.transaction.description,
-        pointed_at: props.transaction.pointed_at ? props.transaction.pointed_at.split('T')[0] : ''
+        description: source.description,
+        // On ne reprend pas le pointage ni la récurrence lors d'une duplication
+        pointed_at: props.transaction ? (source.pointed_at ? source.pointed_at.split('T')[0] : '') : '',
+        is_recurring: props.transaction ? (source.is_recurring || false) : false
       }
     } else {
       form.value = {
@@ -99,7 +97,8 @@ watch(() => props.show, (isOpen) => {
         payment_method: 'card',
         transfer_account: '',
         description: '',
-        pointed_at: ''
+        pointed_at: '',
+        is_recurring: false
       }
     }
     // On laisse le temps au formulaire de s'initialiser avant d'activer les watchers
@@ -135,7 +134,8 @@ const handleSubmit = async () => {
       payment_method: form.value.payment_method,
       description: form.value.description,
       status: form.value.pointed_at ? 'completed' : 'pending',
-      pointed_at: form.value.pointed_at ? new Date(form.value.pointed_at).toISOString() : null
+      pointed_at: form.value.pointed_at ? new Date(form.value.pointed_at).toISOString() : null,
+      is_recurring: form.value.is_recurring
     }
 
     let record
@@ -197,7 +197,7 @@ const handleSubmit = async () => {
 
 <template>
   <UiModal :show="show">
-    <div class="bg-ui-surface border border-ui-border p-6 rounded-2xl shadow-2xl max-w-2xl w-full">
+    <div class="bg-ui-surface border border-ui-border p-6 rounded-2xl shadow-2xl max-w-3xl w-full">
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-xl font-black text-ui-content tracking-tight">
           {{ transaction ? 'Modifier l\'opération' : 'Nouvelle opération' }}
@@ -212,7 +212,7 @@ const handleSubmit = async () => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="space-y-2">
             <label class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1">Type</label>
-            <div class="grid grid-cols-2 gap-1 p-1 bg-ui-surface-muted rounded-lg border border-ui-border h-[40px]">
+            <div class="grid grid-cols-2 gap-1 p-1 bg-ui-surface-muted rounded-lg border border-ui-border h-[52px]">
               <button 
                 v-for="opt in typeOptions" 
                 :key="opt.value"
@@ -267,8 +267,11 @@ const handleSubmit = async () => {
           <UiInput v-model="form.description" label="Description" placeholder="Ex: Courses Carrefour" />
         </div>
 
-        <div class="pt-2">
-          <UiButton type="submit" :disabled="loading" class="w-full shadow-xl shadow-blue-500/10 py-3">
+        <div class="pt-2 flex gap-3">
+          <button v-if="transaction" type="button" @click="emit('delete', transaction)" class="px-4 py-3 text-red-500 hover:bg-red-50 rounded-lg font-bold transition-colors" title="Supprimer">
+            <Icon name="lucide:trash-2" class="w-5 h-5" />
+          </button>
+          <UiButton type="submit" :disabled="loading" class="flex-1 shadow-xl shadow-blue-500/10 py-3">
             {{ loading ? 'Enregistrement...' : 'Valider l\'opération' }}
           </UiButton>
         </div>

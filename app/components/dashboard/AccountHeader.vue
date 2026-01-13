@@ -5,7 +5,7 @@ const props = defineProps<{
   balances: { current: number, cleared: number, projected: number }
 }>()
 
-const emit = defineEmits(['prev-month', 'next-month', 'add'])
+const emit = defineEmits(['prev-month', 'next-month'])
 
 const currentMonthLabel = computed(() => {
   return props.currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
@@ -13,80 +13,60 @@ const currentMonthLabel = computed(() => {
 </script>
 
 <template>
-  <div class="relative flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-ui-surface border border-ui-border p-3 rounded-md shadow-sm sticky top-14 z-30">
-      
-      <!-- Gauche : Navigation & Actions -->
-      <div class="flex items-center gap-2 w-full xl:w-auto">
-        <NuxtLink to="/dashboard/accounts" class="p-2 hover:bg-ui-surface-muted rounded-md text-ui-content-muted hover:text-ui-content transition-colors" title="Retour aux comptes">
+  <div class="bg-ui-surface border border-ui-border rounded-2xl p-4 shadow-sm">
+    
+    <!-- Desktop Layout -->
+    <div class="hidden md:flex items-center justify-between gap-4">
+      <!-- Gauche: Retour, Titre, Actions -->
+      <div class="flex items-center gap-2">
+        <NuxtLink to="/dashboard/accounts" class="w-10 h-10 flex items-center justify-center bg-ui-surface hover:bg-ui-surface-muted border border-ui-border rounded-xl text-ui-content transition-all shadow-sm">
           <Icon name="lucide:arrow-left" class="w-5 h-5" />
         </NuxtLink>
-
-        <div class="h-6 w-px bg-ui-border hidden sm:block mx-2"></div>
-
-        <button 
-          @click="emit('add')"
-          class="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 text-xs font-bold"
-          title="Ajouter une opération"
-        >
-          <Icon name="lucide:plus" class="w-4 h-4" />
-          <span class="hidden sm:inline">Ajouter</span>
-        </button>
-
-        <button disabled class="flex items-center gap-2 px-3 py-2 bg-ui-surface-muted text-ui-content-muted/50 rounded-md border border-ui-border/50 cursor-not-allowed text-xs font-bold" title="Bientôt disponible">
-          <Icon name="lucide:calendar-clock" class="w-4 h-4" />
-          <span class="hidden sm:inline">Échéancier</span>
-        </button>
       </div>
 
-      <!-- Centre : Timeline (Absolue sur desktop pour centrage parfait) -->
-      <div class="flex justify-center w-full xl:w-auto xl:absolute xl:left-1/2 xl:-translate-x-1/2 order-first xl:order-none mb-2 xl:mb-0">
-        <div class="flex items-center gap-2 bg-ui-surface-muted/50 rounded-md p-1 border border-ui-border/50 shadow-sm">
-          <button @click="emit('prev-month')" class="p-1.5 hover:bg-white rounded-md text-ui-content-muted hover:text-ui-content transition-all shadow-sm hover:shadow">
-            <Icon name="lucide:chevron-left" class="w-4 h-4" />
+      <!-- Milieu: Timeline -->
+      <div class="flex items-center bg-ui-surface-muted/50 rounded-full p-1 border border-ui-border/50">
+          <button @click="emit('prev-month')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm text-ui-content-muted hover:text-ui-content transition-all">
+              <Icon name="lucide:chevron-left" class="w-4 h-4" />
           </button>
-          <span class="text-xs font-black uppercase tracking-widest text-ui-content min-w-[100px] text-center tabular-nums">
-            {{ currentMonthLabel }}
-          </span>
-          <button @click="emit('next-month')" class="p-1.5 hover:bg-white rounded-md text-ui-content-muted hover:text-ui-content transition-all shadow-sm hover:shadow">
-            <Icon name="lucide:chevron-right" class="w-4 h-4" />
+          <span class="px-4 text-xs font-black text-ui-content capitalize min-w-[100px] text-center">{{ currentMonthLabel }}</span>
+          <button @click="emit('next-month')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm text-ui-content-muted hover:text-ui-content transition-all">
+              <Icon name="lucide:chevron-right" class="w-4 h-4" />
           </button>
-        </div>
       </div>
 
-      <!-- Droite : Infos Compte & Soldes -->
-      <div class="flex flex-col sm:flex-row items-center gap-6 w-full xl:w-auto justify-between xl:justify-end">
-        
-        <!-- Info Compte (Discret) -->
-        <div class="flex flex-col items-end mr-auto sm:mr-0">
-           <h1 class="text-sm font-black text-ui-content">{{ account.name }}</h1>
-           <span class="text-[10px] font-medium text-ui-content-muted uppercase tracking-wider">{{ account.bank }} • {{ account.id.substring(0, 4) }}</span>
+      <!-- Droite: Soldes -->
+      <div class="flex items-center gap-3">
+        <div class="text-right">
+           <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest">Pointé</p>
+           <p class="text-sm font-bold text-ui-content">{{ balances.cleared.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</p>
         </div>
-
-        <div class="h-6 w-px bg-ui-border hidden sm:block"></div>
-
-        <!-- Soldes Compacts -->
-        <div class="flex items-center gap-6">
-           <div class="text-right hidden sm:block opacity-70">
-              <p class="text-[9px] font-bold text-ui-content-muted uppercase tracking-wider">Pointé</p>
-              <p class="text-sm font-black text-ui-content tabular-nums">
-                <UiCountUp :value="balances.cleared" :currency="account.currency" />
-              </p>
-           </div>
-           
-           <div class="text-right">
-              <p class="text-[9px] font-bold text-ui-content-muted uppercase tracking-wider">Actuel</p>
-              <p class="text-sm font-black tabular-nums" :class="balances.current >= 0 ? 'text-emerald-600' : 'text-red-600'">
-                <UiCountUp :value="balances.current" :currency="account.currency" />
-              </p>
-           </div>
-
-           <div class="text-right hidden 2xl:block opacity-70">
-              <p class="text-[9px] font-bold text-ui-content-muted uppercase tracking-wider">Prévu</p>
-              <p class="text-sm font-black text-ui-content tabular-nums">
-                <UiCountUp :value="balances.projected" :currency="account.currency" />
-              </p>
-           </div>
+        <div class="text-right px-3 py-1 bg-blue-50/50 border border-blue-100 rounded-lg">
+           <p class="text-[9px] font-black text-blue-600 uppercase tracking-widest">Actuel</p>
+           <p class="text-xl font-black text-blue-700">{{ balances.current.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</p>
+        </div>
+        <div class="text-right">
+           <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest">Prévu</p>
+           <p class="text-sm font-bold text-ui-content">{{ balances.projected.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</p>
         </div>
       </div>
     </div>
+
+    <!-- Mobile Layout (Preserved) -->
+    <div class="md:hidden flex items-center justify-between gap-2">
+        <NuxtLink to="/dashboard/accounts" class="w-10 h-10 flex items-center justify-center -ml-2 bg-ui-surface hover:bg-ui-surface-muted border border-ui-border rounded-xl text-ui-content transition-all shadow-sm">
+          <Icon name="lucide:arrow-left" class="w-5 h-5" />
+        </NuxtLink>
+
+        <div class="flex items-center bg-ui-surface-muted/50 rounded-full p-1 border border-ui-border/50">
+            <button @click="emit('prev-month')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm text-ui-content-muted hover:text-ui-content transition-all">
+                <Icon name="lucide:chevron-left" class="w-4 h-4" />
+            </button>
+            <span class="px-2 text-xs font-black text-ui-content capitalize min-w-[90px] text-center truncate">{{ currentMonthLabel }}</span>
+            <button @click="emit('next-month')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm text-ui-content-muted hover:text-ui-content transition-all">
+                <Icon name="lucide:chevron-right" class="w-4 h-4" />
+            </button>
+        </div>
+    </div>
+  </div>
 </template>

@@ -2,6 +2,7 @@
 // Les imports (ref, computed, etc.) sont automatiques dans Nuxt 3
 const user = usePocketBaseUser()
 const route = useRoute()
+import { useCommandPalette } from '@/composables/useCommandPalette'
 
 // Récupération du titre depuis la meta de la route
 const pageTitle = computed(() => route.meta.title as string || 'Tableau de bord')
@@ -48,27 +49,36 @@ onUnmounted(() => {
 
 // Placeholder pour la météo (Concise)
 const weather = ref({ temp: 4, icon: 'lucide:cloud-snow', label: 'Ciel voilé' })
+
+const { open } = useCommandPalette()
 </script>
 
 <template>
   <header class="h-12 border-b border-ui-border bg-ui-surface/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-40 w-full">
     <!-- Gauche : Salutations -->
     <div class="flex items-center gap-3">
+      <ClientOnly>
       <span class="text-sm font-black text-ui-content tracking-tight whitespace-nowrap">
         Bonjour, {{ user?.name || 'Aventurier' }}
       </span>
+      </ClientOnly>
     </div>
 
     <!-- Centre : Titre du menu -->
     <div class="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
       <div class="h-0.5 w-6 bg-linear-to-r from-blue-400 to-pink-400 rounded-full mb-1.5"></div>
-      <h2 class="text-ui-content font-black uppercase tracking-[0.4em] text-[10px]">
-        {{ pageTitle }}
-      </h2>
+      <h2 class="text-ui-content font-black uppercase tracking-[0.4em] text-[10px]" v-html="pageTitle"></h2>
     </div>
 
     <!-- Droite : Date, Heure & Météo -->
     <div class="flex items-center gap-6">
+      <!-- Command Palette Trigger -->
+      <button @click="open" class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-ui-surface-muted hover:bg-white border border-ui-border rounded-lg text-xs text-ui-content-muted hover:text-ui-content transition-all group shadow-sm hover:shadow">
+        <Icon name="lucide:search" class="w-3.5 h-3.5" />
+        <span class="font-medium">Rechercher...</span>
+        <span class="ml-2 px-1.5 py-0.5 bg-ui-surface border border-ui-border rounded text-[9px] font-bold group-hover:border-blue-200">Ctrl K</span>
+      </button>
+
       <!-- Météo -->
       <div class="hidden sm:flex items-center gap-3 px-3 py-1 cursor-default group/weather">
         <div class="flex flex-col items-end">

@@ -2,13 +2,13 @@
 </script>
 
 <template>
-  <div class="flex min-h-screen">
+  <div class="flex min-h-screen w-full">
     <!-- Sidebar fixe à gauche (Cachée sur mobile) -->
-    <div class="hidden md:block">
+    <aside class="hidden md:block fixed inset-y-0 left-0 z-50">
       <DashboardSidebar />
-    </div>
+    </aside>
 
-    <div class="flex-1 flex flex-col md:ml-20 pb-20 md:pb-0 transition-all duration-300">
+    <div class="flex-1 flex flex-col md:ml-20 pb-20 md:pb-0 transition-all duration-300 min-w-0">
       <!-- Header supérieur -->
       <DashboardHeader />
 

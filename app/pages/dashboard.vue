@@ -13,11 +13,16 @@ onMounted(async () => {
     try {
       await pb.collection('users').authRefresh()
       user.value = pb.authStore.model
+      // On ne génère les échéances que si l'auth est validée
+      checkAndGenerate()
     } catch (e) {
       console.error("Erreur refresh auth:", e)
+      // Si le refresh échoue (token invalide/expiré), on nettoie et on redirige
+      pb.authStore.clear()
+      user.value = null
+      navigateTo('/auth/login')
     }
   }
-  checkAndGenerate()
 })
 </script>
 

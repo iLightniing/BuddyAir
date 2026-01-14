@@ -1,29 +1,8 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
 
-const props = defineProps<{
-  modelValue: string[]
-}>()
-
-const emit = defineEmits(['update:modelValue', 'remove'])
-
-// On initialise avec une copie pour éviter les mutations directes de props
-const list = ref([...props.modelValue])
-
-// Synchronisation descendante (Parent -> Enfant)
-// Utile quand on ajoute une sous-catégorie depuis le parent
-watch(() => props.modelValue, (newVal) => {
-  // On compare pour éviter les boucles infinies
-  if (JSON.stringify(newVal) !== JSON.stringify(list.value)) {
-    list.value = [...newVal]
-  }
-}, { deep: true })
-
-// Synchronisation ascendante (Enfant -> Parent)
-// Utile quand on réorganise la liste via Drag & Drop
-watch(list, (newVal) => {
-  emit('update:modelValue', newVal)
-}, { deep: true })
+const list = defineModel<string[]>({ required: true })
+const emit = defineEmits(['remove'])
 </script>
 
 <template>
@@ -35,7 +14,7 @@ watch(list, (newVal) => {
   >
     <div v-for="(sub, idx) in list" :key="sub" class="inline-flex items-center gap-2 px-3 py-1.5 bg-ui-surface border border-ui-border rounded-lg text-sm text-ui-content-muted group hover:border-blue-300 transition-colors cursor-grab active:cursor-grabbing">
       <span>{{ sub }}</span>
-      <button type="button" @click="emit('remove', idx)" class="text-ui-content-muted group-hover:text-red-500 transition-colors">
+      <button type="button" @click="emit('remove', idx)" class="text-ui-content-muted group-hover:text-red-500 transition-colors" title="Supprimer">
         <Icon name="lucide:x" class="w-3 h-3" />
       </button>
     </div>

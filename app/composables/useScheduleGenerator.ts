@@ -35,9 +35,10 @@ export const useScheduleGenerator = () => {
                  description: schedule.description,
                  category: schedule.category,
                  sub_category: schedule.sub_category,
-                 payment_method: 'direct_debit', // Par défaut pour les échéances
+                 payment_method: schedule.payment_method || 'direct_debit',
                  status: 'pending', // Non pointé par défaut
-                 is_recurring: true
+                 is_recurring: true,
+                 tags: schedule.tags
              })
 
              // Mise à jour du solde du compte
@@ -61,7 +62,9 @@ export const useScheduleGenerator = () => {
       
       if (generatedCount > 0) notify(`${generatedCount} échéance(s) générée(s) pour ce mois.`, 'success')
     } catch (e) {
-      console.error("Erreur génération échéances:", e)
+      if (!(e instanceof Error && e.name === 'AbortError') && !(e as any)?.isAbort) {
+        console.error("Erreur génération échéances:", e)
+      }
     }
   }
 

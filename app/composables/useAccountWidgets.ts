@@ -4,9 +4,11 @@ export const useAccountWidgets = (props: any) => {
   const chartColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#10b981', '#06b6d4']
 
   const monthlyStats = computed(() => {
-    const income = props.filteredTransactions.filter((t: any) => t.type === 'income').reduce((sum: number, t: any) => sum + t.amount, 0)
-    const expense = props.filteredTransactions.filter((t: any) => t.type === 'expense').reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0)
-    return { income, expense, balance: income - expense }
+    return props.filteredTransactions.reduce((acc: any, t: any) => {
+      if (t.type === 'income') acc.income += t.amount
+      else if (t.type === 'expense') acc.expense += Math.abs(t.amount)
+      return acc
+    }, { income: 0, expense: 0, get balance() { return this.income - this.expense } })
   })
 
   const categoryStats = computed(() => {

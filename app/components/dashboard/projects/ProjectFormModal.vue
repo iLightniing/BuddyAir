@@ -1,9 +1,24 @@
 <script setup lang="ts">
+interface Project {
+  id: string
+}
+interface ProjectFormData {
+  name: string
+  target_amount: number
+  saved_amount: number
+  deadline?: string
+  color: string
+  icon: string
+}
+interface ColorOption {
+  value: string
+}
+
 const props = defineProps<{
   show: boolean
-  editingProject: any
-  form: any
-  colors: any[]
+  editingProject: Project | null
+  form: ProjectFormData
+  colors: ColorOption[]
   icons: string[]
 }>()
 

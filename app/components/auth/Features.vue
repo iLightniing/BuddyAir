@@ -1,5 +1,12 @@
 <script setup lang="ts">
-const features = [
+interface Feature {
+  icon: string
+  color: string
+  label: string
+  subLabel: string
+}
+
+const features: Feature[] = [
   {
     icon: 'lucide:target',
     color: 'text-blue-400',

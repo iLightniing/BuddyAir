@@ -1,6 +1,24 @@
 <script setup lang="ts">
+interface Budget {
+  id: string
+  category: string
+  icon: string
+  amount: number
+  spent: number
+  remaining: number
+  percentage: number
+  projectedPercentage: number
+  remainingPerDay: number
+  scheduled: number
+  trend: number
+  pace?: {
+    class: string
+    label: string
+  }
+}
+
 const props = defineProps<{
-  budget: any
+  budget: Budget
 }>()
 
 const emit = defineEmits(['edit', 'delete', 'view'])

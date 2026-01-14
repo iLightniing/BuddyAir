@@ -3,13 +3,19 @@ defineProps<{
   label: string
 }>()
 
+const emit = defineEmits(['error'])
 const pb = usePocketBase()
 
-const loginWithProvider = async (provider: 'google') => {
+const providers = [
+  { name: 'google', icon: 'logos:google-icon', label: 'Continuer avec Google' }
+]
+
+const loginWithProvider = async (provider: string) => {
   try {
     await pb.collection('users').authWithOAuth2({ provider });
   } catch (error) {
     console.error('Erreur Auth Sociale:', error);
+    emit('error', error)
   }
 }
 </script>
@@ -23,13 +29,15 @@ const loginWithProvider = async (provider: 'google') => {
     </div>
     
     <div class="flex flex-col gap-4">
-      <button 
+      <button
+        v-for="provider in providers"
+        :key="provider.name" 
         type="button" 
-        @click="loginWithProvider('google')"
+        @click="loginWithProvider(provider.name)"
         class="flex items-center justify-center gap-3 py-3.5 bg-ui-surface border border-ui-border rounded-md hover:bg-ui-surface-muted transition-all text-ui-content text-sm font-bold cursor-pointer group/btn w-full"
       >
-        <Icon name="logos:google-icon" class="w-5 h-5" />
-        Continuer avec Google
+        <Icon :name="provider.icon" class="w-5 h-5" />
+        {{ provider.label }}
       </button>
     </div>
   </div>

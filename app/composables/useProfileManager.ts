@@ -102,7 +102,11 @@ export const useProfileManager = () => {
   }
 
   const handleClickOutside = (event: MouseEvent) => {
-    if (addressContainerRef.value && !addressContainerRef.value.contains(event.target as Node)) {
+    const el = addressContainerRef.value as any
+    // On récupère l'élément DOM réel (soit via la ref exposée, soit $el, soit l'élément lui-même)
+    const targetEl = el?.addressContainerRef || el?.$el || el
+
+    if (targetEl && typeof targetEl.contains === 'function' && !targetEl.contains(event.target as Node)) {
       showSuggestions.value = false
     }
   }

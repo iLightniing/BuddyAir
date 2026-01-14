@@ -1,6 +1,20 @@
 <script setup lang="ts">
+interface Account {
+  id: string
+  name: string
+  bank: string
+  account_group: 'current' | 'savings' | 'credit'
+  current_balance: number
+  currency: string
+  interest_rate?: number
+  savings_type?: string
+  monthly_payment?: number
+  loan_start_date?: string
+  loan_duration?: number
+}
+
 const props = defineProps<{
-  account: any
+  account: Account
   isEditMode: boolean
 }>()
 

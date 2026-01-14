@@ -36,7 +36,7 @@ const getPolylinePoints = (data: number[], width: number, height: number) => {
  const getAreaPath = (data: number[], width: number, height: number) => {
     const polyline = getPolylinePoints(data, width, height)
     if (!polyline) return ""
-    return `${polyline} L ${width},${height} L 0,${height} Z`
+    return `M ${polyline} L ${width},${height} L 0,${height} Z`
  }
 
  const getMaxCashFlow = computed(() => {
@@ -86,9 +86,6 @@ const getTrendClass = (value: number, inverse = false) => {
        </div>
        <div class="flex items-center gap-2 w-full sm:w-auto">
           <UiSelect v-model="selectedAccountId" :options="accountOptions" label="Compte" class="w-full sm:w-64" />
-          <button class="p-2.5 hover:bg-ui-surface-muted rounded-lg border border-ui-border text-ui-content-muted hover:text-ui-content transition-colors" title="Exporter les données">
-            <Icon name="lucide:download" class="w-5 h-5" />
-          </button>
        </div>
     </div>
 
@@ -155,7 +152,7 @@ const getTrendClass = (value: number, inverse = false) => {
           <div class="h-64 w-full relative group" @mouseleave="hoveredIndex = null">
              <!-- Tooltip -->
              <div v-if="hoveredIndex !== null && historyData[hoveredIndex] !== undefined" 
-                  class="absolute z-10 bg-gray-900 text-white text-xs rounded py-1.5 px-3 pointer-events-none transform -translate-x-1/2 -translate-y-full -mt-3 transition-all duration-75 shadow-xl"
+                  class="absolute z-[100] bg-gray-900 text-white text-xs rounded py-1.5 px-3 pointer-events-none transform -translate-x-1/2 -translate-y-full -mt-3 transition-all duration-75 shadow-xl"
                   :style="{ left: `${(hoveredIndex / (historyData.length - 1)) * 100}%`, top: `${getY(historyData[hoveredIndex] ?? 0, 100)}%` }"
              >
                 <div class="font-bold whitespace-nowrap mb-0.5">{{ historyLabels[hoveredIndex] }}</div>

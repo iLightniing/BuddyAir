@@ -18,11 +18,7 @@ export default defineNuxtRouteMiddleware((to) => {
     return navigateTo(user.value ? PATHS.DASHBOARD : PATHS.LOGIN, { replace: true })
   }
 
-  // 2. Zone Invité (Login, Register, Forgot Password)
-  const isGuestPage = to.path.startsWith(PATHS.AUTH) && to.path !== PATHS.UPDATE_PASSWORD
-  if (isGuestPage && user.value) {
-    return navigateTo(PATHS.DASHBOARD, { replace: true })
-  }
+  // 2. Zone Invité : Gérée par les pages elles-mêmes (onMounted) pour éviter les erreurs d'hydratation
 
   // 3. Zone Authentifiée (Dashboard, Update Password)
   const isProtectedPage = to.path.startsWith(PATHS.DASHBOARD) || to.path === PATHS.UPDATE_PASSWORD

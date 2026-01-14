@@ -1,8 +1,16 @@
 <script setup lang="ts">
+interface Project {
+  name: string
+}
+interface AccountOption {
+  label: string
+  value: string
+}
+
 const props = defineProps<{
   show: boolean
-  project: any
-  accountOptions: any[]
+  project: Project | null
+  accountOptions: AccountOption[]
 }>()
 
 const amount = defineModel<string>('amount')

@@ -1,127 +1,93 @@
 <script setup lang="ts">
 import { useProfileManager } from '~/composables/useProfileManager'
+import { useAvatarManager } from '~/composables/useAvatarManager'
+import { useAccountSecurity } from '~/composables/useAccountSecurity'
+import { useUserPreferences } from '~/composables/useUserPreferences'
 
 definePageMeta({ title: 'Mon Profil' })
 
+const pb = usePocketBase()
+
+// --- Data & State Management ---
 const {
   user, loading, isEditing, form, sexOptions,
   startEdit, cancelEdit, updateProfile,
   addressSuggestions, showSuggestions, addressContainerRef, onAddressInput, selectAddress,
   showPasswordModal, pwdForm, pwdLoading, updatePassword
 } = useProfileManager()
+
+const {
+  fileInput, avatarPreview, isUploadingAvatar,
+  triggerFileInput, handleAvatarChange
+} = useAvatarManager()
+
+const {
+  showDeleteConfirm, isDeleting, deleteAccount
+} = useAccountSecurity()
+
+const { preferences } = useUserPreferences()
+
+// --- Computed Properties ---
+const userInitials = computed(() => {
+  const name = user.value?.name || ''
+  return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2) || 'U'
+})
 </script>
 
 <template>
-  <div class="w-full space-y-8">
-    <!-- Informations Personnelles -->
-    <div class="bg-ui-surface border border-ui-border rounded-xl p-6 shadow-sm">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-bold text-ui-content">Informations personnelles</h2>
-        <div class="flex gap-3">
-          <template v-if="isEditing">
-            <UiButton @click="cancelEdit" variant="secondary" class="px-6">Annuler</UiButton>
-            <UiButton @click="updateProfile" :disabled="loading" class="px-6">
-              {{ loading ? '...' : 'Enregistrer' }}
-            </UiButton>
-          </template>
-          <UiButton v-else @click="startEdit" variant="secondary" class="px-6">
-            <Icon name="lucide:pencil" class="w-4 h-4 mr-2" /> Modifier
-          </UiButton>
-        </div>
-      </div>
+  <div class="max-w-5xl mx-auto space-y-8">
+    <DashboardProfileHeader 
+      :user="user" 
+      :loading="loading" 
+      :is-editing="isEditing" 
+      :user-initials="userInitials"
+      @start-edit="startEdit"
+      @cancel-edit="cancelEdit"
+      @save="updateProfile"
+    />
 
-      <form @submit.prevent="updateProfile" class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <UiSelect v-model="form.sex" label="Sexe" :options="sexOptions" :disabled="!isEditing" />
-           <UiDate v-model="form.birthdate" label="Date de naissance" :disabled="!isEditing" />
-           <UiInput v-model="form.surname" label="Nom" placeholder="Votre nom" :disabled="!isEditing" />
-           <UiInput v-model="form.firstname" label="Prénom" placeholder="Votre prénom" :disabled="!isEditing" />
-           <UiInput v-model="form.phone" label="Téléphone" placeholder="06 12 34 56 78" :disabled="!isEditing" />
-        </div>
-        
-        <div class="border-t border-ui-border pt-6">
-           <h3 class="text-sm font-bold text-ui-content mb-4">Adresse</h3>
-           <div class="space-y-4 relative" ref="addressContainerRef">
-              <div class="relative">
-                <UiInput 
-                  v-model="form.address" 
-                  label="Adresse" 
-                  placeholder="Commencez à saisir votre adresse..." 
-                  :disabled="!isEditing"
-                  @input="onAddressInput"
-                  autocomplete="off"
-                />
-                <!-- Suggestions Dropdown -->
-                <div v-if="showSuggestions && addressSuggestions.length > 0 && isEditing" class="absolute top-full left-0 w-full bg-ui-surface border border-ui-border rounded-md shadow-lg z-50 mt-1 overflow-hidden">
-                  <button 
-                    v-for="suggestion in addressSuggestions" 
-                    :key="suggestion.properties.id"
-                    type="button"
-                    @click="selectAddress(suggestion)"
-                    class="w-full text-left px-4 py-3 text-sm hover:bg-ui-surface-muted transition-colors border-b border-ui-border last:border-0"
-                  >
-                    <div class="font-medium text-ui-content">{{ suggestion.properties.name }}</div>
-                    <div class="text-xs text-ui-content-muted">{{ suggestion.properties.postcode }} {{ suggestion.properties.city }}</div>
-                  </button>
-                </div>
-              </div>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 <UiInput v-model="form.zipcode" label="Code postal" :disabled="!isEditing" />
-                 <UiInput v-model="form.city" label="Ville" :disabled="!isEditing" />
-                 <UiInput v-model="form.country" label="Pays" :disabled="!isEditing" />
-              </div>
-           </div>
-        </div>
-      </form>
-    </div>
-
-    <!-- Sécurité -->
-    <div class="bg-ui-surface border border-ui-border rounded-xl p-6 shadow-sm">
-      <h2 class="text-lg font-bold text-ui-content mb-6">Connexion & Sécurité</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-         <div>
-            <label class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1">Adresse Email</label>
-            <div class="mt-2 p-3 bg-ui-surface-muted border border-ui-border rounded-md text-ui-content-muted font-medium flex items-center justify-between cursor-not-allowed opacity-75">
-               <div class="flex items-center gap-2">
-                  <Icon name="lucide:lock" class="w-4 h-4" />
-                  {{ user?.email }}
-               </div>
-            <span class="text-green-600 bg-green-50 border border-green-200 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <Icon name="lucide:badge-check" class="w-3.5 h-3.5" /> Vérifié
-               </span>
-            </div>
-            <p class="text-xs text-ui-content-muted mt-1 ml-1">L'adresse email ne peut pas être modifiée pour des raisons de sécurité.</p>
-         </div>
-
-         <div>
-            <label class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1">Mot de passe</label>
-            <div class="mt-2 w-full p-3 bg-ui-surface border border-ui-border rounded-md text-ui-content font-black tracking-widest flex items-center justify-between">
-               <span>••••••••••••••••</span>
-               <button @click="showPasswordModal = true" class="text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-colors">Modifier</button>
-            </div>
-         </div>
-      </div>
-    </div>
-
-    <!-- Modal Mot de passe -->
-    <UiModal :show="showPasswordModal">
-       <div class="bg-ui-surface border border-ui-border p-6 rounded-xl shadow-2xl max-w-md w-full">
-          <div class="flex items-center justify-between mb-6">
-             <h3 class="text-xl font-black text-ui-content">Modifier le mot de passe</h3>
-             <button @click="showPasswordModal = false"><Icon name="lucide:x" class="w-5 h-5 text-ui-content-muted" /></button>
-          </div>
-          <form @submit.prevent="updatePassword" class="space-y-4">
-             <UiInput v-model="pwdForm.oldPassword" type="password" label="Ancien mot de passe" required />
-             <UiInput v-model="pwdForm.password" type="password" label="Nouveau mot de passe" required />
-             <UiInput v-model="pwdForm.passwordConfirm" type="password" label="Confirmer le nouveau mot de passe" required />
-             
-             <div class="pt-4 flex gap-3">
-                <UiButton type="button" @click="showPasswordModal = false" variant="secondary" class="flex-1">Annuler</UiButton>
-                <UiButton type="submit" :disabled="pwdLoading" class="flex-1">{{ pwdLoading ? '...' : 'Valider' }}</UiButton>
-             </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+       <!-- Colonne Gauche : Infos -->
+       <div class="lg:col-span-2 space-y-8">
+          <form @submit.prevent="updateProfile" class="space-y-8">
+            <DashboardProfileIdentityCard :form="form" :sex-options="sexOptions" :is-editing="isEditing" />
+            
+            <DashboardProfileAddressCard 
+              :form="form" 
+              :is-editing="isEditing" 
+              :address-suggestions="addressSuggestions" 
+              :show-suggestions="showSuggestions"
+              @input-address="onAddressInput"
+              @select-address="selectAddress"
+              ref="addressContainerRef"
+            />
           </form>
        </div>
-    </UiModal>
+
+       <!-- Colonne Droite : Sécurité -->
+       <div class="space-y-8">
+          <DashboardProfileSecurityCard :user="user" @edit-password="showPasswordModal = true" />
+
+          <DashboardProfilePreferencesCard :preferences="preferences" />
+
+          <DashboardProfileDangerZone @delete="showDeleteConfirm = true" />
+       </div>
+    </div>
+
+    <DashboardProfileDeleteAccountModal 
+      :show="showDeleteConfirm" 
+      :user="user" 
+      :loading="isDeleting" 
+      @close="showDeleteConfirm = false" 
+      @confirm="deleteAccount" 
+    />
+
+    <DashboardProfilePasswordModal 
+      :show="showPasswordModal" 
+      :form="pwdForm" 
+      :loading="pwdLoading" 
+      @close="showPasswordModal = false" 
+      @submit="updatePassword" 
+    />
   </div>
 </template>

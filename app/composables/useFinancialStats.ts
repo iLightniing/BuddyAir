@@ -114,6 +114,18 @@ export const useFinancialStats = () => {
       pendingRecurring.value = estimatedPending
       safeToSpend.value = netWorth.value - estimatedPending
 
+      // --- Optimisation : Agrégation par mois en une seule passe ---
+      const monthlyAggregates = new Map<string, { income: number, expense: number }>()
+      transactions.forEach(t => {
+         const d = new Date(t.date)
+         const key = `${d.getFullYear()}-${d.getMonth()}` // Clé unique par mois
+         if (!monthlyAggregates.has(key)) monthlyAggregates.set(key, { income: 0, expense: 0 })
+         
+         const agg = monthlyAggregates.get(key)!
+         if (t.type === 'income') agg.income += t.amount
+         else agg.expense += Math.abs(t.amount)
+      })
+
       const months = []
       const balances = []
       const cashFlow = []
@@ -122,36 +134,26 @@ export const useFinancialStats = () => {
       for (let i = 0; i < 6; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
         const label = d.toLocaleDateString('fr-FR', { month: 'short' })
-
-        // Calcul Cash Flow pour ce mois spécifique
-        const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1)
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59)
-        const txInThisMonth = transactions.filter(t => {
-           const tDate = new Date(t.date)
-           return tDate >= monthStart && tDate <= monthEnd
-        })
-        const mIncome = txInThisMonth.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
-        const mExpense = txInThisMonth.filter(t => t.type === 'expense').reduce((sum, t) => sum + Math.abs(t.amount), 0)
+        const key = `${d.getFullYear()}-${d.getMonth()}`
+        const agg = monthlyAggregates.get(key) || { income: 0, expense: 0 }
         
+        // On remonte le temps : Solde Précédent = Solde Actuel - Revenus + Dépenses
         if (i > 0) {
-          // On remonte le temps : on inverse les transactions du mois suivant pour retrouver le solde précédent
-          const monthToRevertStart = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
-          const monthToRevertEnd = new Date(now.getFullYear(), now.getMonth() - i + 2, 1)
-
-          const txToRevert = transactions.filter(t => {
-            const tDate = new Date(t.date)
-            return tDate >= monthToRevertStart && tDate < monthToRevertEnd
-          })
-
-          txToRevert.forEach(t => {
-            if (t.type === 'expense') runningBalance += Math.abs(t.amount)
-            else runningBalance -= t.amount
-          })
+           // Pour l'itération i, on doit annuler l'effet du mois i-1 (qui est le mois "suivant" dans le passé)
+           // Note: La logique de boucle ici est simplifiée : on affiche le solde à la FIN du mois i.
+           // Pour avoir le solde à la fin du mois précédent, on doit inverser les mouvements du mois courant.
+           // Mais comme on itère à l'envers, on doit ajuster runningBalance AVANT de push pour le mois suivant
         }
+        // Correction logique simplifiée :
+        // runningBalance est le solde à la fin du mois 'i'.
+        // Pour le tour suivant (i+1, mois précédent), on doit retirer les revenus et ajouter les dépenses du mois 'i'.
         
         months.unshift(label)
         balances.unshift(runningBalance)
-        cashFlow.unshift({ label, income: mIncome, expense: mExpense })
+        cashFlow.unshift({ label, income: agg.income, expense: agg.expense })
+
+        // Préparation pour le mois précédent
+        runningBalance = runningBalance - agg.income + agg.expense
       }
       
       historyLabels.value = months

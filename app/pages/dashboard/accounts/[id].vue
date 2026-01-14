@@ -6,6 +6,7 @@ definePageMeta({
 import { useAccountDetail } from '~/composables/useAccountDetail'
 import { useTransactionActions } from '~/composables/useTransactionActions'
 import { useCreditAnalysis } from '~/composables/useCreditAnalysis'
+import { useBalanceAnimation } from '~/composables/useBalanceAnimation'
 
 const route = useRoute()
 const accountId = route.params.id as string
@@ -26,10 +27,14 @@ const { amortizationSchedule, creditAnalysis } = useCreditAnalysis(account)
 
 const showAmortizationModal = ref(false)
 const showAnalyticsModal = ref(false)
+const showTagsAnalysisModal = ref(false)
 
 const currentMonthLabel = computed(() => {
   return currentDate.value.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
 })
+
+// --- Animation des Soldes ---
+const { displayedBalances } = useBalanceAnimation(balances)
 </script>
 
 <template>
@@ -39,7 +44,7 @@ const currentMonthLabel = computed(() => {
       :selected-transactions="selectedTransactions"
       :current-month-label="currentMonthLabel"
       :balances="balances"
-      :show-balances="!['credit', 'savings'].includes(account?.account_group)"
+      :show-balances="false"
       v-model:search-query="searchQuery"
       v-model:filter-type="filterType"
       v-model:filter-status="filterStatus"
@@ -47,6 +52,7 @@ const currentMonthLabel = computed(() => {
       @prev-month="prevMonth"
       @next-month="nextMonth"
       @show-analytics="showAnalyticsModal = true"
+      @show-tags-analysis="showTagsAnalysisModal = true"
       @show-amortization="showAmortizationModal = true"
       @bulk-point="handleBulkPoint"
       @bulk-delete="handleBulkDelete"
@@ -55,10 +61,10 @@ const currentMonthLabel = computed(() => {
     >
       <template #metrics>
         <!-- HEADER SPÉCIFIQUE : CRÉDIT (Intégré dans la toolbar) -->
-        <div v-if="account?.account_group === 'credit'" class="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
+        <div v-if="account?.account_group === 'credit'" class="flex flex-col sm:flex-row sm:items-center gap-4 animate-in fade-in slide-in-from-right-4 w-full sm:w-auto">
            <!-- Card 1: Capital Restant -->
-           <div class="flex flex-col items-end min-w-[140px]">
-              <div class="flex justify-between w-full mb-0.5">
+           <div class="flex flex-col items-start sm:items-end min-w-[140px] w-full sm:w-auto">
+              <div class="flex justify-between w-full mb-0.5 gap-4">
                 <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest">Capital Restant</p>
                 <p class="text-[9px] font-bold text-emerald-600">{{ (100 - (Math.abs(account.current_balance) / account.credit_amount) * 100).toFixed(0) }}% payé</p>
               </div>
@@ -71,10 +77,10 @@ const currentMonthLabel = computed(() => {
               </div>
            </div>
 
-           <div class="w-px h-8 bg-ui-border mx-2"></div>
+           <div class="hidden sm:block w-px h-8 bg-ui-border mx-2"></div>
 
            <!-- Card 2: Mensualité -->
-           <div class="flex flex-col items-end">
+           <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto">
               <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest mb-0.5">Mensualité</p>
               <div class="flex items-baseline gap-1">
                  <p class="text-lg font-black text-ui-content leading-none">{{ Number(account.monthly_payment).toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</p>
@@ -85,10 +91,10 @@ const currentMonthLabel = computed(() => {
               </span>
            </div>
 
-           <div class="w-px h-8 bg-ui-border mx-2"></div>
+           <div class="hidden sm:block w-px h-8 bg-ui-border mx-2"></div>
 
            <!-- Card 3: Taux -->
-           <div class="flex flex-col items-end">
+           <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto">
               <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest mb-0.5">Taux</p>
               <div class="flex items-center gap-2">
                  <span class="text-lg font-black text-orange-600 leading-none">{{ account.interest_rate }}%</span>
@@ -102,17 +108,17 @@ const currentMonthLabel = computed(() => {
         <!-- On laisse comme ça pour l'instant. -->
 
         <!-- HEADER SPÉCIFIQUE : ÉPARGNE (Intégré dans la toolbar) -->
-        <div v-else-if="account?.account_group === 'savings'" class="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
+        <div v-else-if="account?.account_group === 'savings'" class="flex flex-col sm:flex-row sm:items-center gap-4 animate-in fade-in slide-in-from-right-4 w-full sm:w-auto">
            <!-- Card 1: Solde -->
-           <div class="flex flex-col items-end">
+           <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto">
               <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest mb-0.5">Disponible</p>
-              <p class="text-lg font-black text-emerald-600 leading-none">{{ account.current_balance.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</p>
+              <p class="text-lg font-black leading-none" :class="account.current_balance >= 0 ? 'text-emerald-600' : 'text-red-600'">{{ account.current_balance.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</p>
            </div>
 
-           <div class="w-px h-8 bg-ui-border mx-2"></div>
+           <div class="hidden sm:block w-px h-8 bg-ui-border mx-2"></div>
 
            <!-- Card 2: Performance -->
-           <div class="flex flex-col items-end">
+           <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto">
               <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest mb-0.5">Intérêts (Est.)</p>
               <div class="flex items-baseline gap-1">
                  <span class="text-lg font-black text-ui-content leading-none">+{{ calculateYearlyInterest(account) }}</span>
@@ -124,8 +130,61 @@ const currentMonthLabel = computed(() => {
               </div>
            </div>
         </div>
+
+        <!-- HEADER STANDARD (Compte Courant) -->
+        <div v-else class="flex flex-col sm:flex-row sm:items-center gap-4 animate-in fade-in slide-in-from-right-4 w-full sm:w-auto">
+           <!-- Solde Actuel -->
+           <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto">
+              <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest mb-0.5">Solde Actuel</p>
+              <p class="text-lg font-black leading-none" :class="displayedBalances.current >= 0 ? 'text-emerald-600' : 'text-red-600'">
+                {{ displayedBalances.current.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}
+              </p>
+           </div>
+
+           <div class="hidden sm:block w-px h-8 bg-ui-border mx-2"></div>
+
+           <!-- Solde Pointé -->
+           <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto">
+              <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest mb-0.5">Solde Pointé</p>
+              <p class="text-lg font-black leading-none" :class="displayedBalances.cleared >= 0 ? 'text-emerald-600' : 'text-red-600'">
+                {{ displayedBalances.cleared.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}
+              </p>
+           </div>
+
+           <div class="hidden sm:block w-px h-8 bg-ui-border mx-2"></div>
+
+           <!-- Solde Prévu -->
+           <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto">
+              <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest mb-0.5">Solde Prévu</p>
+              <p class="text-lg font-black leading-none" :class="displayedBalances.projected >= 0 ? 'text-emerald-600' : 'text-red-600'">
+                {{ displayedBalances.projected.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}
+              </p>
+           </div>
+        </div>
       </template>
     </DashboardAccountToolbar>
+
+    <!-- Affichage des soldes pour mobile/tablette -->
+    <div v-if="account && !['credit', 'savings'].includes(account.account_group)" class="md:hidden grid grid-cols-3 gap-2 px-4 text-center">
+      <div class="bg-ui-surface border border-ui-border rounded-lg p-2">
+        <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest">Actuel</p>
+        <p class="text-sm font-bold" :class="displayedBalances.current >= 0 ? 'text-emerald-600' : 'text-red-600'">
+          {{ displayedBalances.current.toLocaleString('fr-FR') }} €
+        </p>
+      </div>
+      <div class="bg-ui-surface border border-ui-border rounded-lg p-2">
+        <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest">Pointé</p>
+        <p class="text-sm font-bold" :class="displayedBalances.cleared >= 0 ? 'text-emerald-600' : 'text-red-600'">
+          {{ displayedBalances.cleared.toLocaleString('fr-FR') }} €
+        </p>
+      </div>
+      <div class="bg-ui-surface border border-ui-border rounded-lg p-2">
+        <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest">Prévu</p>
+        <p class="text-sm font-bold" :class="displayedBalances.projected >= 0 ? 'text-emerald-600' : 'text-red-600'">
+          {{ displayedBalances.projected.toLocaleString('fr-FR') }} €
+        </p>
+      </div>
+    </div>
 
     <!-- Liste des transactions (Pleine largeur) -->
     <DashboardTransactionTable
@@ -200,5 +259,14 @@ const currentMonthLabel = computed(() => {
           />
        </div>
     </UiModal>
+
+    <!-- Modal Analyse Tags -->
+    <DashboardTagsAnalysisModal
+      v-if="account"
+      :show="showTagsAnalysisModal"
+      :transactions="filteredTransactions"
+      :currency="account.currency"
+      @close="showTagsAnalysisModal = false"
+    />
   </div>  
 </template>

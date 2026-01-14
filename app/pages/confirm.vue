@@ -10,36 +10,38 @@ const showErrorAndRedirect = (msg: string) => {
 }
 
 const handleConfirmation = async () => {
-  const token = route.query.token as string
-  const type = route.query.type as 'signup' | 'recovery' | 'oauth'
+  const token = route.query.token?.toString() || ''
+  const type = route.query.type?.toString() || ''
 
   if (!token && type !== 'oauth') {
     return showErrorAndRedirect("Token de confirmation manquant.")
   }
 
   try {
-    if (type === 'signup') {
-      await pb.collection('users').confirmVerification(token)
-      notify("Votre compte a été confirmé avec succès !", "success")
-      return navigateTo('/auth/login?confirmed=true', { replace: true })
+    switch (type) {
+      case 'signup':
+        await pb.collection('users').confirmVerification(token)
+        notify("Votre compte a été confirmé avec succès !", "success")
+        return navigateTo('/auth/login?confirmed=true', { replace: true })
+      
+      case 'recovery':
+        // Le 'confirmPasswordReset' est géré sur la page de mise à jour du mot de passe
+        // Stocker le token pour le réutiliser sur la page de réinitialisation
+        sessionStorage.setItem('password_reset_token', token)
+        return navigateTo('/auth/update-password', { replace: true })
+      
+      case 'oauth':
+        // Gestion de la connexion OAuth
+        if (user.value) {
+          return navigateTo('/dashboard', { replace: true })
+        }
+        throw new Error("Authentification sociale échouée.")
+        
+      default:
+        throw new Error("Type de confirmation inconnu.")
     }
-
-    // Le 'confirmPasswordReset' est géré sur la page de mise à jour du mot de passe
-    if (type === 'recovery') {
-      // Stocker le token pour le réutiliser sur la page de réinitialisation
-      sessionStorage.setItem('password_reset_token', token)
-      return navigateTo('/auth/update-password', { replace: true })
-    }
-
-    // Gestion de la connexion OAuth
-    if (type === 'oauth') {
-      if(user.value) {
-        return navigateTo('/dashboard', { replace: true })
-      }
-    }
-
   } catch (error: any) {
-    return showErrorAndRedirect(error.message || "Une erreur est survenue lors de la confirmation.")
+    return showErrorAndRedirect(error?.message || "Une erreur est survenue lors de la confirmation.")
   }
 }
 

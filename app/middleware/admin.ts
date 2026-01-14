@@ -1,7 +1,9 @@
 export default defineNuxtRouteMiddleware((to) => {
   const user = usePocketBaseUser()
   
-  if (user.value?.role !== 3) {
+  const ROLE_ADMIN = 3
+  
+  if (user.value?.role !== ROLE_ADMIN) {
     return navigateTo('/dashboard')
   }
 })

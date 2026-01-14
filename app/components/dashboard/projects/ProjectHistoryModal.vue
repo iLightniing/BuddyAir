@@ -1,9 +1,19 @@
 <script setup lang="ts">
+interface Project {
+  name: string
+}
+interface ProjectTransaction {
+  id: string
+  date: string
+  type: 'expense' | 'income'
+  amount: number
+}
+
 defineProps<{
   show: boolean
-  project: any
+  project: Project | null
   loading: boolean
-  transactions: any[]
+  transactions: ProjectTransaction[]
 }>()
 
 const emit = defineEmits(['close'])

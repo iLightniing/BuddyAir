@@ -5,7 +5,7 @@ const model = defineModel<string | number>()
 const id = useId()
 
 const props = defineProps<{
-  label: string
+  label?: string
   options: { label: string, value: string | number }[]
   disabled?: boolean
 }>()
@@ -38,7 +38,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 <template>
   <div class="space-y-2" ref="containerRef">
-    <label :for="id" class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1">{{ label }}</label>
+    <label v-if="label" :for="id" class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1">{{ label }}</label>
     
     <div class="relative">
       <!-- Déclencheur (Trigger) -->

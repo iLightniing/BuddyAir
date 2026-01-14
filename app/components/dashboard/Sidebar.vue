@@ -42,7 +42,7 @@ const confirmLogout = async () => {
 </script>
 
 <template>
-  <aside class="fixed left-0 top-0 h-full w-20 bg-ui-surface border-r border-ui-border flex flex-col items-center py-8 z-50 shadow-sm">
+  <aside class="fixed left-0 top-0 h-full w-20 bg-ui-surface border-r border-ui-border flex flex-col items-center py-8 z-[60] shadow-sm">
     <!-- Logo Icon -->
     <div class="flex items-center justify-center w-12 h-12 rounded-2xl bg-ui-surface-muted border border-ui-border shadow-sm hover:scale-110 hover:rotate-3 transition-all duration-300 cursor-default group/logo">
       <span class="text-2xl font-black tracking-tighter bg-linear-to-br from-blue-400 to-pink-400 bg-clip-text text-transparent select-none italic">
@@ -62,7 +62,7 @@ const confirmLogout = async () => {
         <Icon :name="item.icon" class="w-6 h-6" />
         
         <!-- Tooltip -->
-        <span class="absolute left-full ml-4 px-3 py-1.5 bg-ui-content text-ui-surface text-[10px] font-bold uppercase tracking-widest rounded-md opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+        <span class="absolute left-full ml-4 px-3 py-1.5 bg-ui-content text-ui-surface text-[10px] font-bold uppercase tracking-widest rounded-md opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-[100]">
           {{ item.label }}
         </span>
       </NuxtLink>
@@ -77,7 +77,7 @@ const confirmLogout = async () => {
         class="relative group flex items-center justify-center w-12 h-12 rounded-xl text-purple-600 hover:bg-purple-50 transition-all duration-300 cursor-pointer"
       >
         <Icon name="lucide:shield-check" class="w-6 h-6" />
-        <span class="absolute left-full ml-4 px-3 py-1.5 bg-ui-content text-ui-surface text-[10px] font-bold uppercase tracking-widest rounded-md opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+        <span class="absolute left-full ml-4 px-3 py-1.5 bg-ui-content text-ui-surface text-[10px] font-bold uppercase tracking-widest rounded-md opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-[100]">
           Administration
         </span>
       </NuxtLink>
@@ -88,7 +88,7 @@ const confirmLogout = async () => {
         class="relative group flex items-center justify-center w-12 h-12 rounded-xl text-red-500 hover:bg-red-50 transition-all duration-300 cursor-pointer"
       >
         <Icon name="lucide:log-out" class="w-6 h-6" />
-        <span class="absolute left-full ml-4 px-3 py-1.5 bg-ui-content text-ui-surface text-[10px] font-bold uppercase tracking-widest rounded-md opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+        <span class="absolute left-full ml-4 px-3 py-1.5 bg-ui-content text-ui-surface text-[10px] font-bold uppercase tracking-widest rounded-md opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-[100]">
           Déconnexion
         </span>
       </button>

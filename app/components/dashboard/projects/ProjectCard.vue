@@ -1,8 +1,27 @@
 <script setup lang="ts">
+interface Project {
+  id: string
+  name: string
+  target_amount: number
+  saved_amount: number
+  color?: string
+  icon?: string
+  deadline?: string
+  is_archived?: boolean
+}
+interface DeadlineBadge {
+  class: string
+  label: string
+}
+interface MonthlyEffort {
+  amount: number
+  label: string
+}
+
 defineProps<{
-  project: any
-  getDeadlineBadge: (date: string) => any
-  getMonthlyEffort: (project: any) => any
+  project: Project
+  getDeadlineBadge: (date: string) => DeadlineBadge | null
+  getMonthlyEffort: (project: Project) => MonthlyEffort | null
 }>()
 
 const emit = defineEmits(['history', 'edit', 'delete', 'transfer', 'archive', 'restore'])

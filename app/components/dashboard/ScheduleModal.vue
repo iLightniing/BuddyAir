@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useScheduleForm } from '~/composables/useScheduleForm'
+import { usePaymentMethods } from '~/composables/usePaymentMethods'
+import { useTags } from '~/composables/useTags'
 const props = defineProps<{ 
   show: boolean, 
   item?: any,
@@ -23,14 +25,26 @@ const typeOptions = [
 ]
 
 const { categories, fetchCategories, categoryOptions } = useCategories()
+const { fetchPaymentMethods, paymentMethodOptions } = usePaymentMethods()
+const { tags, fetchTags, getTagClass } = useTags()
 
-onMounted(fetchCategories)
+onMounted(() => {
+  fetchCategories()
+  fetchPaymentMethods()
+  fetchTags()
+})
 
 const subCategoryOptions = computed(() => {
   const category = form.value.category
   const cat = categories.value.find(c => c.name === category)
   return cat && cat.sub_categories ? cat.sub_categories.map((s: string) => ({ label: s, value: s })) : []
 })
+
+const toggleTag = (tagId: string) => {
+  const index = form.value.tags.indexOf(tagId)
+  if (index === -1) form.value.tags.push(tagId)
+  else form.value.tags.splice(index, 1)
+}
 </script>
 
 <template>
@@ -71,6 +85,7 @@ const subCategoryOptions = computed(() => {
 
             <!-- Account -->
             <UiSelect v-model="form.account" label="Compte à débiter" :options="accounts" placeholder="Choisir un compte..." />
+            <UiSelect v-model="form.payment_method" label="Moyen de paiement" :options="paymentMethodOptions" />
 
             <!-- Category & Sub-category -->
             <div class="grid grid-cols-2 gap-4">
@@ -80,6 +95,23 @@ const subCategoryOptions = computed(() => {
 
             <!-- Description -->
             <UiInput v-model="form.description" label="Description" placeholder="Ex: Abonnement Netflix" required />
+
+            <!-- Tags -->
+            <div v-if="tags.length > 0" class="space-y-2">
+               <label class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1">Tags</label>
+               <div class="flex flex-wrap gap-2">
+                  <button 
+                    v-for="tag in tags" 
+                    :key="tag.id" 
+                    type="button"
+                    @click="toggleTag(tag.id)"
+                    class="px-3 py-1 rounded-full text-xs font-bold border transition-all"
+                    :class="form.tags.includes(tag.id) ? getTagClass(tag.color) + ' ring-2 ring-offset-1 ring-blue-500/30' : 'bg-ui-surface border-ui-border text-ui-content-muted hover:border-blue-300'"
+                  >
+                     #{{ tag.name }}
+                  </button>
+               </div>
+            </div>
 
             <!-- Amount -->
             <div>

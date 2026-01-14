@@ -34,16 +34,30 @@ export const useBudgetStats = (
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
     const remainingDays = Math.max(1, daysInMonth - now.getDate() + 1)
 
-    const stats = budgets.value.map(b => {
-      const categoryTransactions = transactions.value.filter(t => t.category === b.category)
-      const spent = categoryTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0)
-      
-      const prevCategoryTransactions = previousTransactions.value.filter(t => t.category === b.category)
-      const prevSpent = prevCategoryTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    // Optimisation : Indexation des transactions par catégorie (O(N) au lieu de O(N*M))
+    const txByCategory = new Map<string, number>()
+    const txCountByCategory = new Map<string, number>()
+    transactions.value.forEach(t => {
+      if (t.type === 'expense') {
+        txByCategory.set(t.category, (txByCategory.get(t.category) || 0) + Math.abs(t.amount))
+        txCountByCategory.set(t.category, (txCountByCategory.get(t.category) || 0) + 1)
+      }
+    })
 
-      const categoryScheduled = scheduledTransactions.value.filter(t => t.category === b.category)
-      const scheduled = categoryScheduled.reduce((sum, t) => sum + Math.abs(t.amount), 0)
-      
+    const prevTxByCategory = new Map<string, number>()
+    previousTransactions.value.forEach(t => {
+      if (t.type === 'expense') prevTxByCategory.set(t.category, (prevTxByCategory.get(t.category) || 0) + Math.abs(t.amount))
+    })
+
+    const scheduledByCategory = new Map<string, number>()
+    scheduledTransactions.value.forEach(t => {
+      if (t.type === 'expense') scheduledByCategory.set(t.category, (scheduledByCategory.get(t.category) || 0) + Math.abs(t.amount))
+    })
+
+    const stats = budgets.value.map(b => {
+      const spent = txByCategory.get(b.category) || 0
+      const prevSpent = prevTxByCategory.get(b.category) || 0
+      const scheduled = scheduledByCategory.get(b.category) || 0
       const catDef = categories.value.find(c => c.name === b.category)
       const icon = catDef?.icon || 'lucide:wallet'
       
@@ -60,7 +74,7 @@ export const useBudgetStats = (
         projectedPercentage: b.amount > 0 ? ((spent + scheduled) / b.amount) * 100 : 0,
         prevSpent,
         trend: spent - prevSpent,
-        transactionCount: categoryTransactions.length,
+        transactionCount: txCountByCategory.get(b.category) || 0,
         icon,
         pace: getPaceStatus(percentage),
         progressColor: getProgressColor(percentage)

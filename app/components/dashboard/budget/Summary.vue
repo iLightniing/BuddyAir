@@ -1,6 +1,21 @@
 <script setup lang="ts">
+interface BudgetStats {
+  totalLimit: number
+  totalIncome: number
+  savingsCapacity: number
+  totalSpent: number
+  progress: number
+  totalScheduled: number
+  totalRemaining: number
+  health: {
+    bg: string
+    color: string
+    label: string
+  }
+}
+
 defineProps<{
-  stats: any
+  stats: BudgetStats
   dailySafeSpend: number | null
 }>()
 </script>

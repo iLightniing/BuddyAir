@@ -1,6 +1,23 @@
 <script setup lang="ts">
+
+interface Transaction {
+  id: string
+  date: string
+  description: string
+  amount: number
+  type: 'income' | 'expense'
+  category: string
+  sub_category?: string
+  payment_method: string
+  status: string
+  pointed_at?: string
+  is_recurring?: boolean
+  running_balance: number
+  tags?: string[]
+}
+
 const props = defineProps<{
-  transactions: any[]
+  transactions: Transaction[]
   loading: boolean
   selectedTransactions: string[]
   currency: string
@@ -9,22 +26,13 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:selectedTransactions', 'edit', 'delete', 'toggle-pointed', 'duplicate'])
 
-const methodIcons: Record<string, string> = {
-  card: 'lucide:credit-card',
-  transfer: 'lucide:arrow-right-left',
-  direct_debit: 'lucide:landmark',
-  cash: 'lucide:banknote',
-  check: 'lucide:scroll-text',
-  other: 'lucide:more-horizontal'
-}
+const { getPaymentMethodLabel, getPaymentMethodIcon, fetchPaymentMethods } = usePaymentMethods()
+const { tags, fetchTags, getTagClass } = useTags()
 
-const methodLabels: Record<string, string> = {
-  card: 'Carte',
-  transfer: 'Virement',
-  direct_debit: 'Prélèvement',
-  cash: 'Espèces',
-  check: 'Chèque',
-  other: 'Autre'
+onMounted(() => { fetchPaymentMethods(); fetchTags() })
+
+const getTagInfo = (id: string) => {
+   return tags.value.find(t => t.id === id)
 }
 
 const allSelected = computed(() => {
@@ -48,6 +56,26 @@ const toggleSelection = (id: string, checked?: boolean) => {
   }
   emit('update:selectedTransactions', newSelection)
 }
+
+// --- Action Menu Logic ---
+const openActionId = ref<string | null>(null)
+const menuPosition = ref({ top: 0, left: 0 })
+
+const toggleActions = (event: MouseEvent, id: string) => {
+  if (openActionId.value === id) {
+    openActionId.value = null
+    return
+  }
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  menuPosition.value = { top: rect.bottom + 5, left: rect.right - 160 } // 160px approx width
+  openActionId.value = id
+}
+
+onMounted(() => {
+  window.addEventListener('click', (e) => { if (!(e.target as Element).closest('.action-trigger')) openActionId.value = null })
+  window.addEventListener('scroll', () => openActionId.value = null, true)
+})
 </script>
 
 <template>
@@ -56,9 +84,7 @@ const toggleSelection = (id: string, checked?: boolean) => {
         <Icon name="lucide:loader-2" class="w-10 h-10 text-blue-500 animate-spin" />
       </div>
       
-      <div v-else-if="transactions.length > 0">
-        <!-- Vue Desktop (Tableau) -->
-        <div class="hidden md:block overflow-x-auto">
+      <div v-else-if="transactions.length > 0" class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b border-ui-border bg-ui-surface-muted/50">
@@ -66,14 +92,14 @@ const toggleSelection = (id: string, checked?: boolean) => {
                 <UiCheckbox :model-value="allSelected" @update:model-value="toggleAll" />
               </th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest w-28">Date</th>
-              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest">Description</th>
-              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest">Catégorie</th>
+              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest min-w-[150px]">Description</th>
+              <!-- Catégorie fusionnée dans Description -->
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest w-24">Type</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Frais' : 'Débit' }}</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Versé' : 'Crédit' }}</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-center w-16">Pointé</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Capital Restant' : 'Solde' }}</th>
-              <th class="p-3 pr-6 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-20">Action</th>
+              <th class="p-3 pr-6 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-14"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-ui-border">
@@ -111,19 +137,20 @@ const toggleSelection = (id: string, checked?: boolean) => {
                       </div>
                     </div>
                   </div>
-                </div>
-              </td>
-
-              <!-- Catégorie -->
-              <td class="p-3 align-top">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="inline-flex self-start items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-ui-surface-muted border border-ui-border text-ui-content-muted">
-                    {{ tx.category }}
-                  </span>
-                  <span v-if="tx.sub_category" class="flex items-center gap-1 text-[10px] text-ui-content-muted font-medium">
-                    <Icon name="lucide:chevron-right" class="w-3 h-3 opacity-50" />
-                    {{ tx.sub_category }}
-                  </span>
+                  <!-- Catégorie (Badge) -->
+                  <div class="flex items-center gap-2 flex-wrap mt-1">
+                    <span class="inline-flex self-start items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-ui-surface-muted border border-ui-border text-ui-content-muted">
+                      {{ tx.category }}
+                    </span>
+                    <span v-if="tx.sub_category" class="flex items-center gap-1 text-[10px] text-ui-content-muted font-medium">
+                      <Icon name="lucide:chevron-right" class="w-3 h-3 opacity-50" />
+                      {{ tx.sub_category }}
+                    </span>
+                    <!-- Tags -->
+                    <span v-for="tagId in (tx.tags || [])" :key="tagId" class="px-1.5 py-0.5 rounded text-[9px] font-bold border" :class="getTagInfo(tagId) ? getTagClass(getTagInfo(tagId).color) : 'bg-gray-100 text-gray-500 border-gray-200'">
+                      #{{ getTagInfo(tagId)?.name || '?' }}
+                    </span>
+                  </div>
                 </div>
               </td>
 
@@ -131,10 +158,10 @@ const toggleSelection = (id: string, checked?: boolean) => {
               <td class="p-3 align-top">
                 <div class="flex items-center gap-2" :title="tx.payment_method">
                   <div class="w-6 h-6 rounded-md flex items-center justify-center bg-ui-surface-muted text-ui-content-muted">
-                    <Icon :name="methodIcons[tx.payment_method] || 'lucide:more-horizontal'" class="w-3.5 h-3.5" />
+                    <Icon :name="getPaymentMethodIcon(tx.payment_method)" class="w-3.5 h-3.5" />
                   </div>
                   <span class="text-xs font-medium text-ui-content-muted hidden xl:inline-block capitalize">
-                    {{ methodLabels[tx.payment_method] || tx.payment_method }}
+                    {{ getPaymentMethodLabel(tx.payment_method) }}
                   </span>
                 </div>
               </td>
@@ -150,7 +177,7 @@ const toggleSelection = (id: string, checked?: boolean) => {
               </td>
 
               <!-- Pointé -->
-              <td class="p-3 text-center align-top">
+              <td class="p-3 text-center align-top" @click.stop>
                 <div class="flex justify-center">
                   <UiCheckbox :model-value="tx.status === 'completed'" @update:model-value="(val) => emit('toggle-pointed', tx, val)" />
                 </div>
@@ -163,57 +190,13 @@ const toggleSelection = (id: string, checked?: boolean) => {
 
               <!-- Action -->
               <td class="p-3 pr-6 text-right align-top">
-                <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button @click="emit('duplicate', tx)" class="w-8 h-8 flex items-center justify-center hover:bg-purple-100 text-purple-600 rounded-lg transition-colors" title="Dupliquer">
-                    <Icon name="lucide:copy" class="w-4 h-4" />
-                  </button>
-                  <button @click="emit('edit', tx)" class="w-8 h-8 flex items-center justify-center hover:bg-blue-100 text-blue-600 rounded-lg transition-colors">
-                    <Icon name="lucide:pencil" class="w-4 h-4" />
-                  </button>
-                  <button @click="emit('delete', tx)" class="w-8 h-8 flex items-center justify-center hover:bg-red-100 text-red-600 rounded-lg transition-colors">
-                    <Icon name="lucide:trash-2" class="w-4 h-4" />
-                  </button>
-                </div>
+                <button @click.stop="toggleActions($event, tx.id)" class="action-trigger w-8 h-8 flex items-center justify-center hover:bg-ui-surface-muted text-ui-content-muted hover:text-ui-content rounded-lg transition-colors">
+                  <Icon name="lucide:more-horizontal" class="w-4 h-4" />
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
-        </div>
-
-        <!-- Vue Mobile (Liste Minimaliste) -->
-        <div class="md:hidden divide-y divide-ui-border">
-          <div 
-            v-for="tx in transactions" 
-            :key="tx.id" 
-            @click="emit('edit', tx)"
-            class="p-4 flex items-center justify-between hover:bg-ui-surface-muted/30 active:bg-ui-surface-muted transition-colors cursor-pointer"
-          >
-            <div class="flex items-center gap-3 overflow-hidden">
-              <div class="w-10 h-10 rounded-full flex items-center justify-center border shrink-0" :class="tx.type === 'income' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-ui-surface-muted border-ui-border text-ui-content-muted'">
-                <Icon :name="methodIcons[tx.payment_method] || 'lucide:more-horizontal'" class="w-5 h-5" />
-              </div>
-              
-              <div class="min-w-0 flex flex-col gap-0.5">
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-ui-content text-sm truncate">{{ tx.description || 'Sans description' }}</span>
-                  <div v-if="tx.is_recurring" class="text-[10px] font-black text-purple-600 bg-purple-50 px-1 rounded">R</div>
-                </div>
-                <div class="flex items-center gap-2 text-xs text-ui-content-muted">
-                  <span>{{ new Date(tx.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) }}</span>
-                  <span class="w-0.5 h-0.5 rounded-full bg-current opacity-50"></span>
-                  <span class="truncate">{{ tx.category }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex flex-col items-end gap-1 ml-3 shrink-0">
-              <span class="font-black text-sm tabular-nums" :class="tx.type === 'income' ? 'text-emerald-600' : 'text-red-600'">
-                {{ tx.type === 'income' ? '+' : '-' }}{{ Math.abs(tx.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-              </span>
-              <div @click.stop><UiCheckbox :model-value="tx.status === 'completed'" @update:model-value="(val) => emit('toggle-pointed', tx, val)" class="scale-75 origin-right" /></div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- État vide -->
@@ -224,4 +207,23 @@ const toggleSelection = (id: string, checked?: boolean) => {
         <p class="text-sm font-medium text-ui-content-muted">Aucune opération pour le moment.</p>
       </div>
     </div>
+
+    <!-- Dropdown Menu (Teleported to body to avoid overflow clipping) -->
+    <Teleport to="body">
+      <div v-if="openActionId" class="fixed z-[9999] bg-ui-surface border border-ui-border rounded-xl shadow-xl py-1 w-40 animate-in fade-in zoom-in-95 duration-100" :style="{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }">
+        <button @click="emit('duplicate', transactions.find(t => t.id === openActionId)); openActionId = null" class="w-full text-left px-4 py-2 text-sm text-ui-content hover:bg-ui-surface-muted flex items-center gap-2">
+          <Icon name="lucide:copy" class="w-4 h-4 text-purple-500" />
+          Dupliquer
+        </button>
+        <button @click="emit('edit', transactions.find(t => t.id === openActionId)); openActionId = null" class="w-full text-left px-4 py-2 text-sm text-ui-content hover:bg-ui-surface-muted flex items-center gap-2">
+          <Icon name="lucide:pencil" class="w-4 h-4 text-blue-500" />
+          Modifier
+        </button>
+        <div class="h-px bg-ui-border my-1"></div>
+        <button @click="emit('delete', transactions.find(t => t.id === openActionId)); openActionId = null" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+          <Icon name="lucide:trash-2" class="w-4 h-4" />
+          Supprimer
+        </button>
+      </div>
+    </Teleport>
 </template>

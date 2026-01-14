@@ -1,13 +1,27 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
 
+interface Account {
+  id: string;
+  name: string;
+  bank: string;
+  account_group: 'current' | 'savings' | 'credit';
+  current_balance: number;
+  currency: string;
+  interest_rate?: number;
+  savings_type?: string;
+  monthly_payment?: number;
+  loan_start_date?: string;
+  loan_duration?: number;
+}
+
 defineProps<{
   title: string
   icon: string
   isEditMode: boolean
 }>()
 
-const accounts = defineModel<any[]>('accounts', { required: true })
+const accounts = defineModel<Account[]>('accounts', { required: true })
 
 const emit = defineEmits(['edit', 'delete', 'updateOrder', 'dragStart', 'dragEnd'])
 </script>

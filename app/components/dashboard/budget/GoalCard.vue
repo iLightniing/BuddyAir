@@ -1,6 +1,13 @@
 <script setup lang="ts">
+interface Goal {
+  id: string
+  name: string
+  target_amount: number
+  saved_amount: number
+}
+
 defineProps<{
-  goal: any
+  goal: Goal
 }>()
 const emit = defineEmits(['edit', 'delete'])
 </script>

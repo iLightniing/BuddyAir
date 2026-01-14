@@ -50,8 +50,8 @@ onMounted(init)
             <span class="font-bold text-ui-content truncate">{{ cat.name }}</span>
           </div>
           <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button @click="openModal(cat)" class="p-1.5 hover:bg-blue-50 text-blue-600 rounded-md transition-colors"><Icon name="lucide:pencil" class="w-3.5 h-3.5" /></button>
-            <button @click="requestDelete(cat)" class="p-1.5 hover:bg-red-50 text-red-600 rounded-md transition-colors"><Icon name="lucide:trash-2" class="w-3.5 h-3.5" /></button>
+            <button @click="openModal(cat)" class="p-1.5 hover:bg-blue-50 text-blue-600 rounded-md transition-colors" title="Modifier"><Icon name="lucide:pencil" class="w-3.5 h-3.5" /></button>
+            <button @click="requestDelete(cat)" class="p-1.5 hover:bg-red-50 text-red-600 rounded-md transition-colors" title="Supprimer"><Icon name="lucide:trash-2" class="w-3.5 h-3.5" /></button>
           </div>
         </div>
         <div class="pl-8">
@@ -69,7 +69,7 @@ onMounted(init)
           <h3 class="text-xl font-black text-ui-content tracking-tight">
             {{ categoryForm.id ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}
           </h3>
-          <button @click="showModal = false" class="text-ui-content-muted hover:text-ui-content transition-colors">
+          <button @click="showModal = false" class="text-ui-content-muted hover:text-ui-content transition-colors" title="Fermer">
             <Icon name="lucide:x" class="w-5 h-5" />
           </button>
         </div>
@@ -87,7 +87,7 @@ onMounted(init)
                 placeholder="Ajouter une sous-catégorie..." 
                 class="flex-1 bg-ui-surface border border-ui-border rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none transition-colors"
               />
-              <button type="button" @click="addSubCategory" class="px-3 py-2 bg-ui-surface-muted hover:bg-ui-border rounded-md text-ui-content transition-colors">
+              <button type="button" @click="addSubCategory" class="px-3 py-2 bg-ui-surface-muted hover:bg-ui-border rounded-md text-ui-content transition-colors" title="Ajouter">
                 <Icon name="lucide:plus" class="w-4 h-4" />
               </button>
             </div>

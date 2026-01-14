@@ -14,13 +14,22 @@ definePageMeta({
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
        <!-- Placeholder pour les stats -->
        <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-center text-ui-content-muted border-dashed">
-          Widget Statistique
+          <div class="text-center">
+            <Icon name="lucide:bar-chart-3" class="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <span class="text-sm font-medium">Statistiques Globales</span>
+          </div>
        </div>
        <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-center text-ui-content-muted border-dashed">
-          Widget Premium
+          <div class="text-center">
+            <Icon name="lucide:crown" class="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <span class="text-sm font-medium">Abonnements Premium</span>
+          </div>
        </div>
        <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-center text-ui-content-muted border-dashed">
-          Widget Revenu
+          <div class="text-center">
+            <Icon name="lucide:coins" class="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <span class="text-sm font-medium">Revenus</span>
+          </div>
        </div>
     </div>
 

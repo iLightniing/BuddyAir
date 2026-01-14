@@ -16,7 +16,8 @@ export const useTransactionForm = (props: any, emit: any) => {
     transfer_account: '',
     description: '',
     pointed_at: '',
-    is_recurring: false
+    is_recurring: false,
+    tags: [] as string[]
   })
 
   // Charger les comptes pour le virement
@@ -70,7 +71,8 @@ export const useTransactionForm = (props: any, emit: any) => {
         description: form.value.description,
         status: form.value.pointed_at ? 'completed' : 'pending',
         pointed_at: form.value.pointed_at ? new Date(form.value.pointed_at).toISOString() : null,
-        is_recurring: form.value.is_recurring
+        is_recurring: form.value.is_recurring,
+        tags: form.value.tags
       }
 
       let record
@@ -154,12 +156,14 @@ export const useTransactionForm = (props: any, emit: any) => {
           transfer_account: '',
           description: source.description,
           pointed_at: props.transaction ? (source.pointed_at ? source.pointed_at.split('T')[0] : '') : '',
-          is_recurring: props.transaction ? (source.is_recurring || false) : false
+          is_recurring: props.transaction ? (source.is_recurring || false) : false,
+          tags: source.tags || []
         }
       } else {
         // Reset form defaults
         form.value.amount = ''
         form.value.description = ''
+        form.value.tags = []
         // ... autres resets si nécessaire
       }
       setTimeout(() => { isInitializing.value = false }, 100)

@@ -1,5 +1,17 @@
 import { VueDraggable } from 'vue-draggable-plus'
 
+interface Account {
+  id: string
+  name: string
+  bank: string
+  account_group: 'current' | 'savings' | 'credit'
+  current_balance: number
+  currency: string
+  projected_balance?: number
+  order: number
+  [key: string]: any // Pour les propriétés spécifiques (taux, etc.)
+}
+
 export const useAccounts = () => {
   const pb = usePocketBase()
   const { notify } = useNotification()
@@ -9,17 +21,17 @@ export const useAccounts = () => {
   const isDragging = ref(false)
 
   // Data lists
-  const allAccounts = ref<any[]>([])
-  const currentAccounts = ref<any[]>([])
-  const savingsAccounts = ref<any[]>([])
-  const creditAccounts = ref<any[]>([])
-  const otherAccounts = ref<any[]>([])
+  const allAccounts = ref<Account[]>([])
+  const currentAccounts = ref<Account[]>([])
+  const savingsAccounts = ref<Account[]>([])
+  const creditAccounts = ref<Account[]>([])
+  const otherAccounts = ref<Account[]>([])
 
   // Modal states
   const showModal = ref(false)
-  const accountToEdit = ref<any>(null)
+  const accountToEdit = ref<Account | null>(null)
   const showDeleteModal = ref(false)
-  const accountToDelete = ref<any>(null)
+  const accountToDelete = ref<Account | null>(null)
   const modalGroup = ref('current')
 
   const fetchAccounts = async () => {
@@ -48,7 +60,7 @@ export const useAccounts = () => {
         adjustments[tx.account] = (adjustments[tx.account] || 0) + amount
       })
 
-      const records = data?.map((record: any) => {
+      const records = data?.map((record: any): Account => {
         const futureImpact = adjustments[record.id] || 0
         // On stocke le solde "DB" (qui inclut le futur) dans projected_balance pour l'info "Fin de mois"
         // Et on recalcule le current_balance pour qu'il reflète la réalité d'aujourd'hui
@@ -80,12 +92,12 @@ export const useAccounts = () => {
     showModal.value = true
   }
 
-  const handleEdit = (acc: any) => {
+  const handleEdit = (acc: Account) => {
     accountToEdit.value = acc
     showModal.value = true
   }
 
-  const handleDelete = (acc: any) => {
+  const handleDelete = (acc: Account) => {
     accountToDelete.value = acc
     showDeleteModal.value = true
   }

@@ -37,14 +37,14 @@ const shuffleTime = () => {
   }, 40)
 }
 
-let timer: any
+let timer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
   updateDateTime()
   timer = setInterval(updateDateTime, 1000)
 })
 
 onUnmounted(() => {
-  clearInterval(timer)
+  if (timer) clearInterval(timer)
 })
 
 // Placeholder pour la météo (Concise)

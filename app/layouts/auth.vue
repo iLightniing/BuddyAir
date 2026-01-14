@@ -6,9 +6,9 @@ const icon = computed(() => (route.meta.authIcon as string) || 'lucide:snowflake
 </script>
 
 <template>
-  <div class="min-h-screen w-full">
+  <div class="min-h-screen w-full lg:grid lg:grid-cols-[1fr_640px]">
     <!-- Zone d'information à gauche (Visible uniquement sur desktop) -->
-    <div class="hidden lg:flex absolute inset-0 right-[640px] flex-col justify-center px-20 z-10">
+    <div class="hidden lg:flex flex-col justify-center px-20 relative z-10">
       <div class="max-w-lg space-y-10">
         <div class="space-y-4">
           <h2 class="text-ui-content text-5xl font-black leading-tight">
@@ -22,7 +22,7 @@ const icon = computed(() => (route.meta.authIcon as string) || 'lucide:snowflake
       </div>
     </div>
 
-    <aside class="auth-sidebar">
+    <aside class="auth-sidebar bg-ui-surface border-l border-ui-border flex flex-col justify-center p-8 sm:p-12 lg:p-20 overflow-y-auto h-full">
       <!-- En-tête commun (Fixe durant les transitions) -->
       <div class="flex items-center gap-5 mb-6">
         <img src="~/assets/images/buddyair.png" alt="BuddyAir Logo" class="w-20 h-20 object-contain drop-shadow-2xl" />

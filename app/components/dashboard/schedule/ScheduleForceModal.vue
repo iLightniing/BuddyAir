@@ -1,4 +1,11 @@
 <script setup lang="ts">
+const monthOptions = [
+  { label: 'Janvier', value: 0 }, { label: 'Février', value: 1 }, { label: 'Mars', value: 2 },
+  { label: 'Avril', value: 3 }, { label: 'Mai', value: 4 }, { label: 'Juin', value: 5 },
+  { label: 'Juillet', value: 6 }, { label: 'Août', value: 7 }, { label: 'Septembre', value: 8 },
+  { label: 'Octobre', value: 9 }, { label: 'Novembre', value: 10 }, { label: 'Décembre', value: 11 }
+]
+
 defineProps<{
   show: boolean
   loading: boolean
@@ -8,13 +15,6 @@ const month = defineModel<number>('month')
 const year = defineModel<number>('year')
 
 const emit = defineEmits(['close', 'confirm'])
-
-const monthOptions = [
-  { label: 'Janvier', value: 0 }, { label: 'Février', value: 1 }, { label: 'Mars', value: 2 },
-  { label: 'Avril', value: 3 }, { label: 'Mai', value: 4 }, { label: 'Juin', value: 5 },
-  { label: 'Juillet', value: 6 }, { label: 'Août', value: 7 }, { label: 'Septembre', value: 8 },
-  { label: 'Octobre', value: 9 }, { label: 'Novembre', value: 10 }, { label: 'Décembre', value: 11 }
-]
 </script>
 
 <template>

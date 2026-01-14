@@ -1,7 +1,11 @@
 <script setup lang="ts">
+interface Project {
+  name: string
+}
+
 defineProps<{
   show: boolean
-  project: any
+  project: Project | null
 }>()
 
 const emit = defineEmits(['close', 'confirm'])

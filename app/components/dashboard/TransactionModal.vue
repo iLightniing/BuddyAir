@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useTransactionForm } from '~/composables/useTransactionForm'
+import { useRules } from '~/composables/useRules'
+import { useTags } from '~/composables/useTags'
 
 const props = defineProps<{ 
   show: boolean, 
@@ -13,8 +15,16 @@ const emit = defineEmits(['close', 'success', 'delete'])
 const { form, loading, handleSubmit, availableAccounts, isInitializing } = useTransactionForm(props, emit)
 
 const { categories, fetchCategories, categoryOptions } = useCategories()
+const { fetchPaymentMethods, paymentMethodOptions } = usePaymentMethods()
+const { applyRules, fetchRules } = useRules()
+const { tags, fetchTags, getTagClass } = useTags()
 
-onMounted(fetchCategories)
+onMounted(() => { 
+  fetchCategories()
+  fetchPaymentMethods()
+  fetchRules()
+  fetchTags()
+})
 
 const subCategoryOptions = computed(() => {
   const category = form.value.category
@@ -22,15 +32,6 @@ const subCategoryOptions = computed(() => {
   // On gère le cas où sub_categories est un tableau de chaînes
   return cat && cat.sub_categories ? cat.sub_categories.map((s: string) => ({ label: s, value: s })) : []
 })
-
-const paymentMethods = [
-  { label: 'Carte Bancaire', value: 'card' },
-  { label: 'Virement', value: 'transfer' },
-  { label: 'Prélèvement', value: 'direct_debit' },
-  { label: 'Espèces', value: 'cash' },
-  { label: 'Chèque', value: 'check' },
-  { label: 'Autre', value: 'other' }
-]
 
 const typeOptions = computed(() => {
   if (props.accountGroup === 'credit') {
@@ -64,11 +65,27 @@ watch(() => form.value.type, (newType) => {
     form.value.payment_method = 'transfer'
   }
 })
+
+// Application des règles d'automatisation lors de la saisie de la description
+watch(() => form.value.description, (newVal) => {
+  if (!newVal) return
+  const match = applyRules(newVal)
+  if (match) {
+    form.value.category = match.category
+    form.value.sub_category = match.sub_category || ''
+  }
+})
+
+const toggleTag = (tagId: string) => {
+  const index = form.value.tags.indexOf(tagId)
+  if (index === -1) form.value.tags.push(tagId)
+  else form.value.tags.splice(index, 1)
+}
 </script>
 
 <template>
-  <UiModal :show="show">
-    <div class="bg-ui-surface border border-ui-border p-6 rounded-2xl shadow-2xl max-w-3xl w-full">
+  <UiModal :show="show" @close="emit('close')">
+    <div class="bg-ui-surface border border-ui-border p-4 sm:p-6 rounded-2xl shadow-2xl w-full sm:max-w-3xl">
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-xl font-black text-ui-content tracking-tight">
           {{ transaction ? 'Modifier l\'opération' : 'Nouvelle opération' }}
@@ -119,7 +136,7 @@ watch(() => form.value.type, (newType) => {
               <span class="absolute right-0 top-1/2 -translate-y-1/2 text-ui-content-muted font-bold pointer-events-none">EUR</span>
             </div>
           </div>
-          <UiSelect v-if="!(accountGroup === 'credit' && form.type === 'income')" v-model="form.payment_method" label="Moyen de paiement" :options="paymentMethods" />
+          <UiSelect v-if="!(accountGroup === 'credit' && form.type === 'income')" v-model="form.payment_method" label="Moyen de paiement" :options="paymentMethodOptions" />
         </div>
 
         <!-- Virement : Compte cible -->
@@ -138,11 +155,25 @@ watch(() => form.value.type, (newType) => {
           <UiInput v-model="form.description" label="Description" placeholder="Ex: Courses Carrefour" />
         </div>
 
+        <!-- Ligne 5 : Tags -->
+        <div v-if="tags.length > 0" class="space-y-2">
+           <label class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1">Tags</label>
+           <div class="flex flex-wrap gap-2">
+              <button 
+                v-for="tag in tags" 
+                :key="tag.id" 
+                type="button"
+                @click="toggleTag(tag.id)"
+                class="px-3 py-1 rounded-full text-xs font-bold border transition-all"
+                :class="form.tags.includes(tag.id) ? getTagClass(tag.color) + ' ring-2 ring-offset-1 ring-blue-500/30' : 'bg-ui-surface border-ui-border text-ui-content-muted hover:border-blue-300'"
+              >
+                 #{{ tag.name }}
+              </button>
+           </div>
+        </div>
+
         <div class="pt-2 flex gap-3">
-          <button v-if="transaction" type="button" @click="emit('delete', transaction)" class="px-4 py-3 text-red-500 hover:bg-red-50 rounded-lg font-bold transition-colors" title="Supprimer">
-            <Icon name="lucide:trash-2" class="w-5 h-5" />
-          </button>
-          <UiButton type="submit" :disabled="loading" class="flex-1 shadow-xl shadow-blue-500/10 py-3">
+          <UiButton type="submit" :loading="loading" class="flex-1 shadow-xl shadow-blue-500/10 py-3">
             {{ loading ? 'Enregistrement...' : 'Valider l\'opération' }}
           </UiButton>
         </div>

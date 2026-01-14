@@ -15,7 +15,7 @@ const props = defineProps<{
 const emit = defineEmits([
   'add', 'prev-month', 'next-month', 'show-amortization',
   'bulk-point', 'bulk-delete', 'export', 'export-json',
-  'update:searchQuery', 'update:filterType', 'update:filterStatus', 'show-analytics'
+  'update:searchQuery', 'update:filterType', 'update:filterStatus', 'show-analytics', 'show-tags-analysis'
 ])
 
 const showOptions = ref(false)
@@ -68,6 +68,16 @@ const { displayedBalances } = useBalanceAnimation(toRef(props, 'balances'))
           </button>
           <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] font-bold rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
             Nouvelle opération
+            <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+          </div>
+        </div>
+
+        <div class="relative group">
+          <button @click="emit('show-tags-analysis')" class="w-10 h-10 flex items-center justify-center bg-ui-surface hover:bg-ui-surface-muted border border-ui-border rounded-md text-pink-600 transition-all shadow-sm shrink-0 hover:scale-105 active:scale-95 cursor-pointer">
+            <Icon name="lucide:tags" class="w-5 h-5" />
+          </button>
+          <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] font-bold rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+            Analyse des tags
             <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
           </div>
         </div>
@@ -155,17 +165,17 @@ const { displayedBalances } = useBalanceAnimation(toRef(props, 'balances'))
         <div v-if="showBalances" class="flex items-center gap-6 px-6 py-2 bg-ui-surface-muted/50 border border-ui-border/50 rounded-md shrink-0">
           <div class="flex flex-col items-center">
              <span class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest">Pointé</span>
-             <span class="text-sm font-bold text-ui-content">{{ displayedBalances.cleared.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</span>
+             <span class="text-sm font-bold" :class="displayedBalances.cleared >= 0 ? 'text-emerald-600' : 'text-red-600'">{{ displayedBalances.cleared.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</span>
           </div>
           <div class="w-px h-6 bg-ui-border"></div>
           <div class="flex flex-col items-center">
              <span class="text-[9px] font-black text-blue-600 uppercase tracking-widest">Actuel</span>
-             <span class="text-lg font-black text-blue-700">{{ displayedBalances.current.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</span>
+             <span class="text-lg font-black" :class="displayedBalances.current >= 0 ? 'text-emerald-600' : 'text-red-600'">{{ displayedBalances.current.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</span>
           </div>
           <div class="w-px h-6 bg-ui-border"></div>
           <div class="flex flex-col items-center">
              <span class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest">Prévu</span>
-             <span class="text-sm font-bold text-ui-content">{{ displayedBalances.projected.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</span>
+             <span class="text-sm font-bold" :class="displayedBalances.projected >= 0 ? 'text-emerald-600' : 'text-red-600'">{{ displayedBalances.projected.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</span>
           </div>
         </div>
       </div>
@@ -176,7 +186,10 @@ const { displayedBalances } = useBalanceAnimation(toRef(props, 'balances'))
   <div v-if="searchQuery || selectedTransactions.length === 0" class="flex flex-col md:flex-row items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 px-1 mt-4">
      <div class="relative w-full md:w-80">
         <Icon name="lucide:search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ui-content-muted" />
-        <input :value="searchQuery" @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)" type="text" placeholder="Rechercher..." class="w-full h-10 pl-9 pr-4 bg-ui-surface border border-ui-border hover:border-ui-content-muted rounded-md text-xs font-bold text-ui-content placeholder:text-ui-content-muted focus:border-ui-content-muted focus:outline-none transition-all" />
+        <input :value="searchQuery" @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)" type="text" placeholder="Rechercher..." class="w-full h-10 pl-9 pr-9 bg-ui-surface border border-ui-border hover:border-ui-content-muted rounded-md text-xs font-bold text-ui-content placeholder:text-ui-content-muted focus:border-ui-content-muted focus:outline-none transition-all" />
+        <button v-if="searchQuery" @click="emit('update:searchQuery', '')" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-ui-surface-muted rounded-full text-ui-content-muted hover:text-ui-content transition-colors z-10 cursor-pointer">
+           <Icon name="lucide:x" class="w-3 h-3" />
+        </button>
      </div>
 
      <div class="flex items-center gap-3 w-full md:w-auto">

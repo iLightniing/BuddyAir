@@ -1,4 +1,5 @@
-import banksList from '~/data/banks.json'
+import { useAccountConstants } from './useAccountConstants'
+import { useCreditSimulation } from './useCreditSimulation'
 
 export function useAccountForm(props: any, emit: any) {
   const pb = usePocketBase()
@@ -32,37 +33,10 @@ export function useAccountForm(props: any, emit: any) {
   })
 
   // --- Constantes ---
-  const banks = [
-    ...banksList.map(b => ({ label: b.nom, value: b.nom })).sort((a, b) => a.label.localeCompare(b.label)),
-    { label: 'Autre', value: 'Autre' }
-  ]
+  const { banks, types, groups, currencies, balanceOptions, savingsTypes } = useAccountConstants()
 
-  const types = [
-    { label: 'Débit immédiat', value: 'immediate' },
-    { label: 'Débit différé', value: 'deferred' }
-  ]
-  const groups = [
-    { label: 'Compte courant', value: 'current' },
-    { label: 'Compte Épargne', value: 'savings' },
-    { label: 'Compte Crédit', value: 'credit' }
-  ]
-  const currencies = [
-    { label: 'Euro (€)', value: 'EUR' },
-    { label: 'Dollar ($)', value: 'USD' }
-  ]
-  const balanceOptions = [
-    { label: 'Créditeur (+)', value: 'credit', activeClass: 'bg-ui-surface shadow-sm text-emerald-500' },
-    { label: 'Débiteur (-)', value: 'debit', activeClass: 'bg-ui-surface shadow-sm text-red-500' }
-  ]
-  const savingsTypes = [
-    { label: 'Livret A', value: 'Livret A' },
-    { label: 'LDDS', value: 'LDDS' },
-    { label: 'LEP', value: 'LEP' },
-    { label: 'PEL', value: 'PEL' },
-    { label: 'CEL', value: 'CEL' },
-    { label: 'Assurance Vie', value: 'Assurance Vie' },
-    { label: 'Autre', value: 'Autre' }
-  ]
+  // --- Simulation Crédit ---
+  const { simulation } = useCreditSimulation(form)
 
   // --- Logique ---
   const fetchCurrentAccounts = async () => {
@@ -223,30 +197,6 @@ export function useAccountForm(props: any, emit: any) {
       loading.value = false
     }
   }
-
-  const simulation = computed(() => {
-    if (form.value.group !== 'credit') return null
-    const amount = parseFloat(form.value.credit_amount || '0')
-    const rate = parseFloat(form.value.interest_rate || '0') / 100 / 12
-    const duration = parseFloat(form.value.loan_duration || '0')
-    const insuranceRate = parseFloat(form.value.insurance_rate || '0') / 100
-    const insuranceFixed = parseFloat(form.value.insurance_amount || '0')
-
-    if (!amount || !duration) return null
-    
-    const monthly = rate > 0 ? (amount * rate * Math.pow(1 + rate, duration)) / (Math.pow(1 + rate, duration) - 1) : amount / duration
-    const monthlyInsurance = (amount * insuranceRate) / 12 + insuranceFixed
-    const totalCost = ((monthly + monthlyInsurance) * duration) - amount
-    
-    return { monthly: monthly + monthlyInsurance, totalCost, monthlyInsurance }
-  })
-
-  // Calcul automatique de la mensualité dans le formulaire
-  watch(simulation, (val) => {
-    if (val) {
-      form.value.monthly_payment = val.monthly.toFixed(2)
-    }
-  })
 
   return {
     form, loading, isBalanceLocked, availableCurrentAccounts,

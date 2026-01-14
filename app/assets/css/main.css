@@ -30,6 +30,17 @@
     /* Réserve l'espace de la scrollbar pour éviter les sauts horizontaux */
     scrollbar-gutter: stable;
   }
+
+  /* Masquer les flèches des inputs number (Chrome, Safari, Edge, Opera) */
+  input[type=number]::-webkit-inner-spin-button, 
+  input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+  }
+  /* Firefox */
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
 }
 
 .bg-app-wallpaper {
@@ -50,7 +61,7 @@
 .layout-enter-active,
 .layout-leave-active {
   /* On reste sur une transition d'opacité pure pour la stabilité */
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity;
   backface-visibility: hidden;
 }
@@ -71,7 +82,7 @@
 /* Transition interne ultra-rapide pour le contenu (Comptes, etc.) */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.3s ease;
 }
 .fade-enter-from,
 .fade-leave-to {

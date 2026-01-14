@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useTransactionForm } from '~/composables/useTransactionForm'
+
 const props = defineProps<{ 
   show: boolean, 
   transaction?: any,
@@ -8,22 +10,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits(['close', 'success', 'delete'])
 
-const pb = usePocketBase()
-const { notify } = useNotification()
-const loading = ref(false)
-
-const form = ref({
-  type: 'expense', // 'expense' | 'income'
-  amount: '',
-  date: new Date().toISOString().split('T')[0],
-  category: 'Autre',
-  sub_category: '',
-  payment_method: 'card',
-  transfer_account: '',
-  description: '',
-  pointed_at: '',
-  is_recurring: false
-})
+const { form, loading, handleSubmit, availableAccounts, isInitializing } = useTransactionForm(props, emit)
 
 const { categories, fetchCategories, categoryOptions } = useCategories()
 
@@ -52,67 +39,16 @@ const typeOptions = computed(() => {
       { label: 'Frais / Déblocage', value: 'expense', activeClass: 'bg-red-50 text-red-600 border-red-200 shadow-sm' }
     ]
   }
+  if (props.accountGroup === 'savings') {
+    return [
+      { label: 'Dépôt', value: 'income', activeClass: 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm' },
+      { label: 'Retrait', value: 'expense', activeClass: 'bg-amber-50 text-amber-600 border-amber-200 shadow-sm' }
+    ]
+  }
   return [
     { label: 'Dépense', value: 'expense', activeClass: 'bg-red-50 text-red-600 border-red-200 shadow-sm' },
     { label: 'Revenu', value: 'income', activeClass: 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm' }
   ]
-})
-
-const isInitializing = ref(false)
-const availableAccounts = ref<any[]>([])
-
-// Charger les comptes pour le virement
-const fetchAccounts = async () => {
-  try {
-    const accounts = await pb.collection('accounts').getFullList({ sort: '+name' })
-    // On exclut le compte actuel
-    availableAccounts.value = accounts
-      .filter(acc => acc.id !== props.accountId)
-      .map(acc => ({ label: acc.name, value: acc.id }))
-  } catch (e) {
-    console.error("Erreur chargement comptes", e)
-  }
-}
-
-// Initialisation du formulaire à l'ouverture
-watch(() => props.show, (isOpen) => {
-  if (isOpen) {
-    fetchAccounts()
-    isInitializing.value = true
-    
-    const source = props.transaction || props.initialData
-    if (source) {
-      form.value = {
-        type: source.type,
-        amount: Math.abs(source.amount).toString(),
-        // Si c'est une duplication (initialData), on met la date d'aujourd'hui, sinon la date originale
-        date: props.transaction ? source.date.split('T')[0] : new Date().toISOString().split('T')[0],
-        category: source.category,
-        sub_category: source.sub_category || '',
-        payment_method: source.payment_method || 'card',
-        transfer_account: '', // En édition, on ne gère pas le changement de compte lié pour l'instant
-        description: source.description,
-        // On ne reprend pas le pointage ni la récurrence lors d'une duplication
-        pointed_at: props.transaction ? (source.pointed_at ? source.pointed_at.split('T')[0] : '') : '',
-        is_recurring: props.transaction ? (source.is_recurring || false) : false
-      }
-    } else {
-      form.value = {
-        type: props.accountGroup === 'credit' ? 'income' : 'expense',
-        amount: '',
-        date: new Date().toISOString().split('T')[0],
-        category: 'Autre',
-        sub_category: '',
-        payment_method: 'card',
-        transfer_account: '',
-        description: '',
-        pointed_at: '',
-        is_recurring: false
-      }
-    }
-    // On laisse le temps au formulaire de s'initialiser avant d'activer les watchers
-    setTimeout(() => { isInitializing.value = false }, 100)
-  }
 })
 
 // Réinitialiser la sous-catégorie si la catégorie change (sauf à l'initialisation)
@@ -128,87 +64,6 @@ watch(() => form.value.type, (newType) => {
     form.value.payment_method = 'transfer'
   }
 })
-
-const handleSubmit = async () => {
-  loading.value = true
-  const user = pb.authStore.model
-  
-  try {
-    const amountValue = parseFloat(form.value.amount)
-    if (isNaN(amountValue)) throw new Error("Montant invalide")
-
-    // On stocke le montant en absolu dans la base, le type détermine le signe pour l'affichage
-    // (Ou vous pouvez stocker en négatif pour les dépenses si vous préférez pour les calculs SQL)
-    const data = {
-      user: user?.id,
-      account: props.accountId,
-      type: form.value.type,
-      amount: Math.abs(amountValue), 
-      date: new Date(form.value.date || new Date()).toISOString(),
-      category: form.value.category,
-      sub_category: form.value.sub_category,
-      payment_method: form.value.payment_method,
-      description: form.value.description,
-      status: form.value.pointed_at ? 'completed' : 'pending',
-      pointed_at: form.value.pointed_at ? new Date(form.value.pointed_at).toISOString() : null,
-      is_recurring: form.value.is_recurring
-    }
-
-    let record
-    if (props.transaction) {
-      record = await pb.collection('transactions').update(props.transaction.id, data)
-    } else {
-      record = await pb.collection('transactions').create(data)
-    }
-
-    // Gestion du virement inter-comptes (Création uniquement)
-    if (form.value.payment_method === 'transfer' && form.value.transfer_account && !props.transaction) {
-      const linkedData = {
-        ...data,
-        account: form.value.transfer_account,
-        type: form.value.type === 'expense' ? 'income' : 'expense', // Inverse
-        related_transaction: record.id,
-        // On garde la même description, date, etc.
-      }
-      
-      // Création de la transaction liée
-      const linkedRecord = await pb.collection('transactions').create(linkedData)
-      
-      // Mise à jour de la transaction originale pour faire le lien
-      await pb.collection('transactions').update(record.id, { related_transaction: linkedRecord.id })
-
-      // Mise à jour du solde du compte cible
-      const targetAccount = await pb.collection('accounts').getOne(form.value.transfer_account)
-      const targetAmount = linkedData.type === 'expense' ? -Math.abs(amountValue) : Math.abs(amountValue)
-      await pb.collection('accounts').update(form.value.transfer_account, { 
-        current_balance: targetAccount.current_balance + targetAmount 
-      })
-    }
-
-    // --- Mise à jour du solde du compte ---
-    // 1. On récupère le compte à jour pour éviter les décalages
-    const account = await pb.collection('accounts').getOne(props.accountId)
-    let newBalance = account.current_balance
-
-    // 2. Si c'est une modification, on annule l'effet de l'ancienne transaction
-    if (props.transaction) {
-      const oldAmount = props.transaction.type === 'expense' ? -Math.abs(props.transaction.amount) : Math.abs(props.transaction.amount)
-      newBalance -= oldAmount
-    }
-
-    // 3. On applique la nouvelle transaction
-    const newAmount = form.value.type === 'expense' ? -Math.abs(amountValue) : Math.abs(amountValue)
-    await pb.collection('accounts').update(props.accountId, { current_balance: newBalance + newAmount })
-    
-    notify(props.transaction ? 'Opération modifiée' : 'Opération ajoutée', 'success')
-    emit('success')
-    emit('close')
-  } catch (e: any) {
-    notify(e.message || "Erreur lors de l'enregistrement", "error")
-  } finally {
-    loading.value = false
-  }
-}
 </script>
 
 <template>

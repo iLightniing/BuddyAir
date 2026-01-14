@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getNextOccurrences } from '~/utils/schedule'
+import { useScheduleForm } from '~/composables/useScheduleForm'
 const props = defineProps<{ 
   show: boolean, 
   item?: any,
@@ -7,24 +7,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits(['close', 'success'])
 
-const pb = usePocketBase()
-const { notify } = useNotification()
-const loading = ref(false)
-
-const form = ref({
-  type: 'expense',
-  amount: '',
-  start_date: new Date().toISOString().split('T')[0],
-  end_date: '',
-  account: '',
-  category: 'Autre',
-  sub_category: '',
-  description: '',
-  frequency: 'monthly',
-  day_of_month: new Date().getDate(),
-  shift_weekends: false,
-  generate_now: false
-})
+const { form, loading, accounts, handleSubmit } = useScheduleForm(props, emit)
 
 const frequencies = [
   { label: 'Mensuel', value: 'monthly' },
@@ -48,115 +31,6 @@ const subCategoryOptions = computed(() => {
   const cat = categories.value.find(c => c.name === category)
   return cat && cat.sub_categories ? cat.sub_categories.map((s: string) => ({ label: s, value: s })) : []
 })
-
-const accounts = ref<any[]>([])
-
-const fetchAccounts = async () => {
-  try {
-    const res = await pb.collection('accounts').getFullList({ sort: '+name' })
-    accounts.value = res.map(a => ({ label: a.name, value: a.id }))
-  } catch {}
-}
-
-watch(() => props.show, (isOpen) => {
-  if (isOpen) {
-    fetchAccounts()
-    if (props.item) {
-      form.value = {
-        type: props.item.type,
-        amount: props.item.amount.toString(),
-        start_date: props.item.start_date ? props.item.start_date.split('T')[0] : new Date().toISOString().split('T')[0],
-        end_date: props.item.end_date ? props.item.end_date.split('T')[0] : '',
-        account: props.item.account,
-        category: props.item.category,
-        sub_category: props.item.sub_category || '',
-        description: props.item.description,
-        frequency: props.item.frequency,
-        day_of_month: props.item.day_of_month || new Date().getDate(),
-        shift_weekends: props.item.shift_weekends || false,
-        generate_now: false
-      }
-    } else {
-      form.value = {
-        type: 'expense',
-        amount: '',
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: '',
-        account: props.preselectedAccountId || (accounts.value[0]?.value || ''),
-        category: 'Autre',
-        sub_category: '',
-        description: '',
-        frequency: 'monthly',
-        day_of_month: new Date().getDate(),
-        shift_weekends: false,
-        generate_now: false
-      }
-    }
-  }
-})
-
-const handleSubmit = async () => {
-  loading.value = true
-  const user = pb.authStore.model
-
-  if (!user) {
-    notify("Vous devez être connecté.", "error")
-    loading.value = false
-    return
-  }
-  
-  try {
-    let nextDates = getNextOccurrences(form.value.start_date, form.value.frequency, form.value.day_of_month, form.value.shift_weekends, 2)
-    let nextDateStr = nextDates[0]?.toISOString() ?? new Date().toISOString()
-
-    // Si on génère immédiatement
-    if (form.value.generate_now && nextDates.length > 0) {
-      const txDate = nextDates[0]
-      
-      if (txDate) {
-        // Création de la transaction immédiate
-        await pb.collection('transactions').create({
-          user: user.id,
-          account: form.value.account,
-          type: form.value.type,
-          amount: parseFloat(form.value.amount),
-          date: txDate.toISOString(),
-          description: form.value.description,
-          category: form.value.category,
-          sub_category: form.value.sub_category,
-          payment_method: 'direct_debit',
-          status: 'pending',
-          is_recurring: true
-        })
-      }
-
-      // On décale la prochaine échéance à la suivante pour ne pas la regénérer
-      nextDateStr = nextDates[1]?.toISOString() ?? nextDateStr
-    }
-
-    const data = {
-      user: user.id,
-      ...form.value,
-      amount: parseFloat(form.value.amount),
-      next_date: nextDateStr
-    }
-
-    const currentItem = props.item
-    if (currentItem) {
-      await pb.collection('scheduled_transactions').update(currentItem.id, data)
-    } else {
-      await pb.collection('scheduled_transactions').create(data)
-    }
-
-    notify(props.item ? 'Échéance modifiée' : 'Échéance créée', 'success')
-    emit('success')
-    emit('close')
-  } catch (e: any) {
-    notify(e.message || "Erreur", "error")
-  } finally {
-    loading.value = false
-  }
-}
 </script>
 
 <template>

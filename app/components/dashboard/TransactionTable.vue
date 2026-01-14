@@ -51,7 +51,7 @@ const toggleSelection = (id: string, checked?: boolean) => {
 </script>
 
 <template>
-    <div class="bg-ui-surface border border-ui-border rounded-xl shadow-sm overflow-hidden">
+    <div class="bg-ui-surface border border-ui-border rounded-md shadow-sm overflow-hidden">
       <div v-if="loading" class="p-20 flex justify-center">
         <Icon name="lucide:loader-2" class="w-10 h-10 text-blue-500 animate-spin" />
       </div>
@@ -69,8 +69,8 @@ const toggleSelection = (id: string, checked?: boolean) => {
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest">Description</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest">Catégorie</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest w-24">Type</th>
-              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Augmentation' : 'Débit' }}</th>
-              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Remboursement' : 'Crédit' }}</th>
+              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Frais' : 'Débit' }}</th>
+              <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Versé' : 'Crédit' }}</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-center w-16">Pointé</th>
               <th class="p-3 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-28">{{ accountGroup === 'credit' ? 'Capital Restant' : 'Solde' }}</th>
               <th class="p-3 pr-6 text-[10px] font-black text-ui-content-muted uppercase tracking-widest text-right w-20">Action</th>
@@ -217,15 +217,11 @@ const toggleSelection = (id: string, checked?: boolean) => {
       </div>
 
       <!-- État vide -->
-      <div v-else class="flex flex-col items-center justify-center py-24 text-center">
-        <div class="w-20 h-20 bg-ui-surface-muted rounded-3xl flex items-center justify-center mb-6 text-ui-content-muted/20">
-          <Icon name="lucide:receipt" class="w-10 h-10" />
+      <div v-else class="flex flex-col items-center justify-center py-12 text-center opacity-60 hover:opacity-100 transition-opacity">
+        <div class="w-12 h-12 bg-ui-surface-muted rounded-md flex items-center justify-center mb-3 text-ui-content-muted">
+          <Icon name="lucide:receipt" class="w-6 h-6" />
         </div>
-        <h3 class="text-xl font-black text-ui-content mb-2">Aucune opération</h3>
-        <p class="text-ui-content-muted text-sm max-w-xs mx-auto mb-8">Ce compte est bien calme... Ajoutez votre première dépense ou revenu.</p>
-        <UiButton @click="emit('edit', null)" variant="secondary">
-          Ajouter une opération
-        </UiButton>
+        <p class="text-sm font-medium text-ui-content-muted">Aucune opération pour le moment.</p>
       </div>
     </div>
 </template>

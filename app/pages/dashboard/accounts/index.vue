@@ -3,7 +3,6 @@ definePageMeta({
   title: 'Mes Comptes'
 })
 
-import { VueDraggable } from 'vue-draggable-plus'
 import { useAccounts } from '~/composables/useAccounts'
 
 const {
@@ -25,6 +24,9 @@ const handleClickOutside = (event: MouseEvent) => {
 
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
+
+const onDragStart = () => { isDragging.value = true }
+const onDragEnd = () => { isDragging.value = false }
 </script>
 <template>
   <div class="space-y-6 min-h-[400px]">
@@ -36,14 +38,14 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
     <div v-show="!loading" class="space-y-6">
         <!-- Barre d'actions -->
         <div class="flex flex-row justify-end items-center gap-3">
-          <button @click="navigateTo('/dashboard/schedule')" class="inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-sm font-bold transition-all shadow-sm cursor-pointer rounded-xl hover:scale-105 active:scale-95" title="Échéancier">
+          <button @click="navigateTo('/dashboard/schedule')" class="inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-sm font-bold transition-all shadow-sm cursor-pointer rounded-md hover:scale-105 active:scale-95" title="Échéancier">
             <Icon name="lucide:calendar-clock" class="w-5 h-5" />
             <span class="hidden sm:inline">Échéancier</span>
           </button>
           <button 
             v-if="allAccounts.length > 0"
             @click="isEditMode = !isEditMode"
-            class="inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-ui-surface hover:bg-ui-surface-muted rounded-xl border border-ui-border text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-105 active:scale-95"
+            class="inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-ui-surface hover:bg-ui-surface-muted rounded-md border border-ui-border text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-105 active:scale-95"
             :class="isEditMode ? 'bg-blue-50 border-blue-200 text-blue-600' : 'text-orange-500'"
           >
             <Icon :name="isEditMode ? 'lucide:check' : 'lucide:pencil'" class="w-5 h-5" />
@@ -54,7 +56,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
           <div class="relative" ref="createDropdownRef">
             <button 
               @click="showCreateDropdown = !showCreateDropdown"
-              class="inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 text-sm font-bold transition-all cursor-pointer hover:scale-105 active:scale-95"
+              class="inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-ui-surface hover:bg-ui-surface-muted border border-ui-border text-emerald-600 rounded-md shadow-sm text-sm font-bold transition-all cursor-pointer hover:scale-105 active:scale-95"
             >
               <Icon name="lucide:plus" class="w-5 h-5" />
               <span class="hidden sm:inline">Ajouter</span>
@@ -77,109 +79,53 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         <!-- Vue Unifiée (Lecture & Édition) -->
         <div class="space-y-8">
           
-          <!-- Comptes Courants -->
-          <div v-if="currentAccounts.length > 0" class="space-y-3">
-            <h3 class="text-sm font-black text-ui-content-muted uppercase tracking-widest flex items-center gap-2 px-1">
-              <Icon name="lucide:credit-card" class="w-4 h-4" /> Comptes Courants
-            </h3>
-            <VueDraggable 
-              v-model="currentAccounts"
-              :animation="300"
-              :disabled="!isEditMode"
-              ghost-class="sortable-ghost"
-              drag-class="sortable-drag"
-              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              @start="isDragging = true"
-              @end="isDragging = false; updateOrder()"
-            >
-              <div v-for="acc in currentAccounts" :key="acc.id" class="h-full">
-                <DashboardAccountCard 
-                  :account="acc" 
-                  :is-edit-mode="isEditMode"
-                  @edit="handleEdit"
-                  @delete="handleDelete"
-                />
-              </div>
-            </VueDraggable>
-          </div>
+          <DashboardAccountGroupList
+            title="Comptes Courants"
+            icon="lucide:credit-card"
+            v-model:accounts="currentAccounts"
+            :is-edit-mode="isEditMode"
+            @edit="handleEdit"
+            @delete="handleDelete"
+            @update-order="updateOrder"
+            @drag-start="onDragStart"
+            @drag-end="onDragEnd"
+          />
 
-          <!-- Épargne -->
-          <div v-if="savingsAccounts.length > 0" class="space-y-3">
-            <h3 class="text-sm font-black text-ui-content-muted uppercase tracking-widest flex items-center gap-2 px-1">
-              <Icon name="lucide:piggy-bank" class="w-4 h-4" /> Épargne & Placements
-            </h3>
-            <VueDraggable 
-              v-model="savingsAccounts"
-              :animation="300"
-              :disabled="!isEditMode"
-              ghost-class="sortable-ghost"
-              drag-class="sortable-drag"
-              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              @start="isDragging = true"
-              @end="isDragging = false; updateOrder()"
-            >
-              <div v-for="acc in savingsAccounts" :key="acc.id" class="h-full">
-                <DashboardAccountCard 
-                  :account="acc" 
-                  :is-edit-mode="isEditMode"
-                  @edit="handleEdit"
-                  @delete="handleDelete"
-                />
-              </div>
-            </VueDraggable>
-          </div>
+          <DashboardAccountGroupList
+            title="Épargne & Placements"
+            icon="lucide:piggy-bank"
+            v-model:accounts="savingsAccounts"
+            :is-edit-mode="isEditMode"
+            @edit="handleEdit"
+            @delete="handleDelete"
+            @update-order="updateOrder"
+            @drag-start="onDragStart"
+            @drag-end="onDragEnd"
+          />
 
-          <!-- Crédits -->
-          <div v-if="creditAccounts.length > 0" class="space-y-3">
-            <h3 class="text-sm font-black text-ui-content-muted uppercase tracking-widest flex items-center gap-2 px-1">
-              <Icon name="lucide:landmark" class="w-4 h-4" /> Crédits & Emprunts
-            </h3>
-            <VueDraggable 
-              v-model="creditAccounts"
-              :animation="300"
-              :disabled="!isEditMode"
-              ghost-class="sortable-ghost"
-              drag-class="sortable-drag"
-              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              @start="isDragging = true"
-              @end="isDragging = false; updateOrder()"
-            >
-              <div v-for="acc in creditAccounts" :key="acc.id" class="h-full">
-                <DashboardAccountCard 
-                  :account="acc" 
-                  :is-edit-mode="isEditMode"
-                  @edit="handleEdit"
-                  @delete="handleDelete"
-                />
-              </div>
-            </VueDraggable>
-          </div>
+          <DashboardAccountGroupList
+            title="Crédits & Emprunts"
+            icon="lucide:landmark"
+            v-model:accounts="creditAccounts"
+            :is-edit-mode="isEditMode"
+            @edit="handleEdit"
+            @delete="handleDelete"
+            @update-order="updateOrder"
+            @drag-start="onDragStart"
+            @drag-end="onDragEnd"
+          />
 
-          <!-- Autres -->
-          <div v-if="otherAccounts.length > 0" class="space-y-3">
-            <h3 class="text-sm font-black text-ui-content-muted uppercase tracking-widest flex items-center gap-2 px-1">
-              <Icon name="lucide:wallet" class="w-4 h-4" /> Autres
-            </h3>
-            <VueDraggable 
-              v-model="otherAccounts"
-              :animation="300"
-              :disabled="!isEditMode"
-              ghost-class="sortable-ghost"
-              drag-class="sortable-drag"
-              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              @start="isDragging = true"
-              @end="isDragging = false; updateOrder()"
-            >
-              <div v-for="acc in otherAccounts" :key="acc.id" class="h-full">
-                <DashboardAccountCard 
-                  :account="acc" 
-                  :is-edit-mode="isEditMode"
-                  @edit="handleEdit"
-                  @delete="handleDelete"
-                />
-              </div>
-            </VueDraggable>
-          </div>
+          <DashboardAccountGroupList
+            title="Autres"
+            icon="lucide:wallet"
+            v-model:accounts="otherAccounts"
+            :is-edit-mode="isEditMode"
+            @edit="handleEdit"
+            @delete="handleDelete"
+            @update-order="updateOrder"
+            @drag-start="onDragStart"
+            @drag-end="onDragEnd"
+          />
 
         <!-- État vide -->
         <div v-if="allAccounts.length === 0" class="relative bg-ui-surface border border-ui-border rounded-md p-6 sm:p-12 text-center shadow-sm">

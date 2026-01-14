@@ -4,7 +4,7 @@ import { NuxtLink } from '#components'
 interface Props {
   to?: string
   type?: 'button' | 'submit' | 'reset'
-  variant?: 'primary' | 'secondary'
+  variant?: 'primary' | 'secondary' | 'ghost'
   disabled?: boolean
 }
 withDefaults(defineProps<Props>(), {
@@ -19,9 +19,11 @@ withDefaults(defineProps<Props>(), {
     :to="to"
     :type="!to ? type : undefined"
     :disabled="!to ? disabled : undefined"
-    class="group relative overflow-hidden inline-flex items-center justify-center px-8 py-3.5 font-bold rounded-md transition-all duration-200 active:scale-[0.98] cursor-pointer"
+    class="group relative overflow-hidden inline-flex items-center justify-center font-bold rounded-md transition-all duration-200 active:scale-[0.98] cursor-pointer"
     :class="[
-      variant === 'primary' ? 'bg-ui-content text-ui-surface hover:opacity-90 shadow-sm border border-transparent' : 'bg-ui-surface-muted text-ui-content border border-ui-border hover:bg-ui-border/50 shadow-none',
+      { 'px-8 py-3.5 bg-ui-content text-ui-surface hover:opacity-90 shadow-sm border border-transparent': variant === 'primary' },
+      { 'px-8 py-3.5 bg-ui-surface-muted text-ui-content border border-ui-border hover:bg-ui-border/50 shadow-none': variant === 'secondary' },
+      { 'px-4 py-2 bg-transparent text-ui-content hover:bg-ui-surface-muted border-transparent shadow-none': variant === 'ghost' },
       { 'disabled:opacity-50 disabled:cursor-not-allowed': !to }
     ]"
   >

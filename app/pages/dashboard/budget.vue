@@ -9,117 +9,19 @@
  */
 definePageMeta({ title: 'Budgets' })
 
-const pb = usePocketBase()
-import { useBudget } from '@/composables/useBudget'
-const { notify } = useNotification()
-const user = usePocketBaseUser()
-const { 
-  loading, currentDate, prevMonth, nextMonth, resetDate, fetchData, fetchCategories,
-  budgetStats, globalStats, dailySafeSpend, isCurrentMonth, sortBy,
-  transactions
-} = useBudget()
+import { VueDraggable } from 'vue-draggable-plus'
+import { useBudgetManager } from '~/composables/useBudgetManager'
 
-const currentMonthLabel = computed(() => {
-  return currentDate.value.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-})
+const {
+  loading, currentDate, prevMonth, nextMonth, resetDate,
+  globalStats, dailySafeSpend, isCurrentMonth, sortBy,
+  orderedBudgets, updateOrder,
+  showModal, editingBudget, showDeleteModal, budgetToDelete, showViewModal, viewingBudget, form,
+  sortOptions, categoryOptions, viewingTransactions,
+  openModal, openViewModal, saveBudget, deleteBudget, confirmDelete, init, currentMonthLabel
+} = useBudgetManager()
 
-// --- Catégories ---
-const { categoryOptions } = useCategories()
-
-// --- Formulaire ---
-const showModal = ref(false)
-const editingBudget = ref<any>(null)
-const showDeleteModal = ref(false)
-const budgetToDelete = ref<any>(null)
-const showViewModal = ref(false)
-const viewingBudget = ref<any>(null)
-const form = ref({
-  category: '',
-  amount: ''
-})
-
-const sortOptions = [
-  { label: 'Urgence (Progression)', value: 'progress-desc' },
-  { label: 'Dépenses (Haut → Bas)', value: 'spent-desc' },
-  { label: 'Budget (Haut → Bas)', value: 'amount-desc' },
-  { label: 'Alphabétique', value: 'category' },
-]
-
-onMounted(() => {
-  fetchCategories()
-  fetchData()
-})
-
-const viewingTransactions = computed(() => {
-  if (!viewingBudget.value) return []
-  return transactions.value.filter((t: any) => t.category === viewingBudget.value.category).map((t: any) => ({ ...t }))
-})
-
-// --- Actions ---
-const openModal = (budget: any = null) => {
-  editingBudget.value = budget
-  if (budget) {
-    form.value = {
-      category: budget.category,
-      amount: budget.amount.toString()
-    }
-  } else {
-    form.value = { category: '', amount: '' }
-  }
-  showModal.value = true
-}
-
-const openViewModal = (budget: any) => {
-  viewingBudget.value = budget
-  showViewModal.value = true
-}
-
-const saveBudget = async () => {
-  if (!user.value) return
-  
-  try {
-    const data = {
-      user: user.value.id,
-      category: form.value.category,
-      amount: parseFloat(form.value.amount)
-    }
-
-    if (editingBudget.value) {
-      await pb.collection('budgets').update(editingBudget.value.id, data)
-      notify('Budget mis à jour', 'success')
-    } else {
-      const existing = budgetStats.value.find((b: any) => b.category === data.category) // Use budgetStats or fetch fresh
-      if (existing) {
-        notify('Un budget existe déjà pour cette catégorie', 'error')
-        return
-      }
-      await pb.collection('budgets').create(data)
-      notify('Budget créé', 'success')
-    }
-    
-    showModal.value = false
-    fetchData()
-  } catch (e) {
-    notify('Erreur lors de l\'enregistrement', 'error')
-  }
-}
-
-const deleteBudget = (budget: any) => {
-  budgetToDelete.value = budget
-  showDeleteModal.value = true
-}
-
-const confirmDelete = async () => {
-  if (!budgetToDelete.value) return
-  try {
-    await pb.collection('budgets').delete(budgetToDelete.value.id)
-    notify('Budget supprimé', 'success')
-    showDeleteModal.value = false
-    fetchData()
-  } catch (e) {
-    notify('Erreur lors de la suppression', 'error')
-  }
-}
+onMounted(init)
 </script>
 
 <template>
@@ -129,11 +31,11 @@ const confirmDelete = async () => {
       <!-- Sélecteur de mois -->
       <div class="flex items-center gap-2">
         <div class="flex items-center bg-ui-surface border border-ui-border rounded-lg p-1 shadow-sm">
-          <button @click="prevMonth" class="p-2 hover:bg-ui-surface-muted rounded-md text-ui-content-muted hover:text-ui-content transition-colors">
+          <button @click="prevMonth" class="w-9 h-9 flex items-center justify-center hover:bg-ui-surface-muted rounded-md text-ui-content-muted hover:text-ui-content transition-colors">
             <Icon name="lucide:chevron-left" class="w-5 h-5" />
           </button>
           <span class="px-4 text-sm font-black text-ui-content capitalize min-w-[140px] text-center">{{ currentMonthLabel }}</span>
-          <button @click="nextMonth" class="p-2 hover:bg-ui-surface-muted rounded-md text-ui-content-muted hover:text-ui-content transition-colors">
+          <button @click="nextMonth" class="w-9 h-9 flex items-center justify-center hover:bg-ui-surface-muted rounded-md text-ui-content-muted hover:text-ui-content transition-colors">
             <Icon name="lucide:chevron-right" class="w-5 h-5" />
           </button>
         </div>
@@ -143,9 +45,6 @@ const confirmDelete = async () => {
       </div>
 
       <div class="flex items-end gap-3">
-        <div class="w-64">
-          <UiSelect v-model="sortBy" :options="sortOptions" label="Trier par" />
-        </div>
         <UiButton @click="openModal()" class="shadow-lg shadow-blue-500/20 whitespace-nowrap h-[52px] flex items-center">
           <Icon name="lucide:plus" class="w-4 h-4 mr-2" /> Nouveau budget
         </UiButton>
@@ -160,24 +59,29 @@ const confirmDelete = async () => {
       <Icon name="lucide:loader-2" class="w-8 h-8 text-blue-500 animate-spin" />
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-      <DashboardBudgetCard 
-        v-for="budget in budgetStats" 
-        :key="budget.id" 
-        :budget="budget"
-        @edit="openModal"
-        @delete="deleteBudget"
-        @view="openViewModal"
-      />
+    <VueDraggable v-else-if="orderedBudgets.length > 0"
+      v-model="orderedBudgets"
+      :animation="300"
+      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+      @end="updateOrder"
+    >
+      <div v-for="budget in orderedBudgets" :key="budget.id" class="cursor-grab active:cursor-grabbing">
+        <DashboardBudgetCard 
+          :budget="budget"
+          @edit="openModal"
+          @delete="deleteBudget"
+          @view="openViewModal"
+        />
+      </div>
+    </VueDraggable>
 
-      <!-- Card "Ajouter" (Placeholder) -->
-      <button @click="openModal()" class="border-2 border-dashed border-ui-border rounded-xl p-6 flex flex-col items-center justify-center gap-3 text-ui-content-muted hover:text-blue-500 hover:border-blue-300 hover:bg-blue-50/50 transition-all group min-h-[180px]">
-        <div class="w-12 h-12 rounded-full bg-ui-surface-muted group-hover:bg-blue-100 flex items-center justify-center transition-colors">
-          <Icon name="lucide:plus" class="w-6 h-6" />
-        </div>
-        <span class="font-bold text-sm">Créer un nouveau budget</span>
-      </button>
-    </div>
+    <!-- État vide -->
+    <DashboardEmptyState 
+      v-else 
+      icon="lucide:pie-chart" 
+      title="Aucun budget défini" 
+      message="Créez des budgets pour suivre vos dépenses par catégorie et maîtriser vos finances." 
+    />
 
     <!-- Modal Création (Structure) -->
     <UiModal :show="showModal">

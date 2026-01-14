@@ -78,7 +78,6 @@ const handleClick = () => {
           <span class="text-[10px] font-black uppercase tracking-widest opacity-70">{{ account.bank }}</span>
           <div class="flex items-center gap-2 mt-1">
             <Icon name="lucide:nfc" class="w-5 h-5 opacity-70" />
-            <Icon name="lucide:wifi" class="w-4 h-4 opacity-50 rotate-90" />
           </div>
         </div>
         
@@ -91,7 +90,7 @@ const handleClick = () => {
             <Icon name="lucide:trash-2" class="w-4 h-4" />
           </button>
         </div>
-        <div v-else class="w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md border"
+        <div v-else class="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border"
              :class="account.account_group === 'current' ? 'bg-white/10 border-white/10' : 'bg-white/60 border-white/20'">
           <Icon :name="account.account_group === 'savings' ? 'lucide:piggy-bank' : 'lucide:credit-card'" class="w-5 h-5" />
         </div>
@@ -109,8 +108,8 @@ const handleClick = () => {
       <div class="mt-4 space-y-2">
         <!-- Épargne -->
         <div v-if="account.account_group === 'savings'" class="flex flex-wrap items-center gap-2 text-xs font-medium opacity-80">
-          <span v-if="account.interest_rate" class="px-2 py-1 rounded-md bg-emerald-100/50 border border-emerald-200/50 flex items-center gap-1" title="Taux d'intérêt">
-            <Icon name="lucide:trending-up" class="w-3 h-3" /> {{ account.interest_rate }}%
+          <span v-if="account.interest_rate !== null && account.interest_rate !== undefined" class="px-2 py-1 rounded-md bg-emerald-100/50 border border-emerald-200/50 flex items-center gap-1" title="Taux d'intérêt">
+            <Icon name="lucide:percent" class="w-3 h-3" /> {{ account.interest_rate }}
           </span>
           <span v-if="account.savings_type" class="px-2 py-1 rounded-md bg-emerald-100/50 border border-emerald-200/50">
             {{ account.savings_type }}
@@ -127,8 +126,8 @@ const handleClick = () => {
             <Icon name="lucide:calendar-clock" class="w-3 h-3" />
             {{ Number(account.monthly_payment).toLocaleString('fr-FR', { style: 'currency', currency: account.currency || 'EUR' }) }}/mois
           </span>
-          <span v-if="account.interest_rate" class="px-2 py-1 rounded-md bg-red-100/50 border border-red-200/50 flex items-center gap-1" title="Taux d'intérêt">
-            {{ account.interest_rate }}%
+          <span v-if="account.interest_rate !== null && account.interest_rate !== undefined" class="px-2 py-1 rounded-md bg-red-100/50 border border-red-200/50 flex items-center gap-1" title="Taux d'intérêt">
+            <Icon name="lucide:percent" class="w-3 h-3" /> {{ account.interest_rate }}
           </span>
           <div v-for="(info, i) in proInfos" :key="i" class="w-full mt-1 pt-2 border-t border-red-200/30 flex justify-between items-center">
             <span class="text-[10px] uppercase tracking-wider">{{ info.label }}</span>

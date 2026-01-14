@@ -71,6 +71,9 @@ const getProgressColor = (percentage: number) => {
         <span v-else class="text-xs font-bold text-emerald-600">
           Reste {{ budget.remaining.toLocaleString('fr-FR') }} €
         </span>
+        <div v-if="budget.remainingPerDay > 0" class="text-[10px] text-blue-600 font-bold mt-0.5">
+           ~ {{ budget.remainingPerDay.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) }} € / jour
+        </div>
         <div v-if="budget.scheduled > 0" class="text-[10px] text-ui-content-muted mt-0.5 font-medium">
             dont {{ budget.scheduled.toLocaleString('fr-FR') }} € prévus
         </div>

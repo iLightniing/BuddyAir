@@ -1,119 +1,24 @@
 <script setup lang="ts">
 definePageMeta({ title: 'Échéancier' })
 
-const route = useRoute()
-const pb = usePocketBase()
-const { notify } = useNotification()
+import { useScheduleManager } from '~/composables/useScheduleManager'
+import { useScheduleActions } from '~/composables/useScheduleActions'
+import ScheduleForceModal from '~/components/dashboard/schedule/ScheduleForceModal.vue'
+import ScheduleDeleteModal from '~/components/dashboard/schedule/ScheduleDeleteModal.vue'
 
-const accountId = computed(() => route.query.account as string)
-const loading = ref(true)
-const items = ref<any[]>([])
-const showModal = ref(false)
-const itemToEdit = ref<any>(null)
-const showDeleteModal = ref(false)
-const itemToDelete = ref<any>(null)
-const accountName = ref('')
+const { accountId, loading, accountName, fetchItems, groupedItems } = useScheduleManager()
 
-const fetchItems = async () => {
-  const user = pb.authStore.model
-  if (!user) return
-
-  loading.value = true
-  try {
-    let filter = `user = "${user.id}"`
-
-    if (accountId.value) {
-      filter += ` && account = "${accountId.value}"`
-      // Fetch account name for title
-      try {
-        const acc = await pb.collection('accounts').getOne(accountId.value)
-        accountName.value = acc.name
-      } catch {}
-    } else {
-      accountName.value = ''
-    }
-
-    const result = await pb.collection('scheduled_transactions').getList(1, 500, {
-      filter,
-      sort: '+next_date',
-      expand: 'account',
-      requestKey: null
-    })
-    items.value = result.items
-  } catch (e) {
-    // Silent fail if collection doesn't exist yet or empty
-    console.error(e)
-  } finally {
-    loading.value = false
-  }
-}
-
-watch(() => route.query.account, fetchItems, {
-  immediate: true
-})
-
-const groupedItems = computed(() => {
-  const groups: Record<string, { id: string, accountName: string, items: any[], totalDebit: number, totalCredit: number }> = {}
-  
-  for (const item of items.value) {
-    const accId = item.account || 'unknown'
-    const accName = item.expand?.account?.name || (accountId.value ? accountName.value : 'Compte inconnu')
-    
-    if (!groups[accId]) {
-      groups[accId] = { id: accId, accountName: accName, items: [], totalDebit: 0, totalCredit: 0 }
-    }
-    
-    groups[accId].items.push(item)
-    
-    if (item.type === 'expense') {
-      groups[accId].totalDebit += item.amount
-    } else {
-      groups[accId].totalCredit += item.amount
-    }
-  }
-
-  // Tri par jour du mois puis par ordre alphabétique de la description
-  const sortedGroups = Object.values(groups).sort((a, b) => a.accountName.localeCompare(b.accountName))
-  
-  for (const group of sortedGroups) {
-    group.items.sort((a, b) => {
-      const dayA = a.day_of_month || new Date(a.next_date).getDate()
-      const dayB = b.day_of_month || new Date(b.next_date).getDate()
-      
-      if (dayA !== dayB) return dayA - dayB
-      return (a.description || '').localeCompare(b.description || '')
-    })
-  }
-  return sortedGroups
-})
+const {
+  showModal, itemToEdit, handleEdit,
+  showDeleteModal, itemToDelete, handleDelete, confirmDelete,
+  showForceModal, forceDate, handleForce, confirmForce, loadingAction
+} = useScheduleActions(fetchItems)
 
 const handleBack = () => {
   if (accountId.value) {
     navigateTo(`/dashboard/accounts/${accountId.value}`)
   } else {
     navigateTo('/dashboard/accounts')
-  }
-}
-
-const handleEdit = (item: any) => {
-  itemToEdit.value = item
-  showModal.value = true
-}
-
-const handleDelete = (item: any) => {
-  itemToDelete.value = item
-  showDeleteModal.value = true
-}
-
-const confirmDelete = async () => {
-  if (!itemToDelete.value) return
-  try {
-    await pb.collection('scheduled_transactions').delete(itemToDelete.value.id)
-    notify('Échéance supprimée', 'success')
-    showDeleteModal.value = false
-    fetchItems()
-  } catch (e) {
-    notify('Erreur lors de la suppression', 'error')
   }
 }
 
@@ -210,6 +115,9 @@ const getFrequencyLabel = (freq: string) => {
                      </td>
                      <td class="px-4 py-3 text-right align-top pt-3.5">
                         <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <button @click="handleForce(item)" class="w-7 h-7 flex items-center justify-center hover:bg-emerald-50 text-emerald-600 rounded-md transition-colors" title="Forcer l'insertion ce mois-ci">
+                              <Icon name="lucide:play" class="w-3.5 h-3.5 fill-current" />
+                           </button>
                            <button @click="handleEdit(item)" class="w-7 h-7 flex items-center justify-center hover:bg-blue-50 text-blue-600 rounded-md transition-colors">
                               <Icon name="lucide:pencil" class="w-3.5 h-3.5" />
                            </button>
@@ -240,23 +148,20 @@ const getFrequencyLabel = (freq: string) => {
       @success="fetchItems" 
     />
 
-    <!-- Modal de suppression -->
-    <UiModal :show="showDeleteModal">
-      <div class="bg-ui-surface border border-ui-border p-6 rounded-md shadow-2xl max-w-md w-full">
-        <div class="flex items-center gap-4 mb-4">
-          <div class="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center text-red-500">
-            <Icon name="lucide:triangle-alert" class="w-5 h-5" />
-          </div>
-          <h3 class="text-lg font-black text-ui-content tracking-tight">Supprimer l'échéance ?</h3>
-        </div>
-        <p class="text-sm text-ui-content-muted mb-6">
-          Êtes-vous sûr de vouloir supprimer cette échéance de <span class="font-bold text-ui-content">{{ itemToDelete?.amount }} €</span> ?
-        </p>
-        <div class="flex gap-3">
-          <UiButton @click="showDeleteModal = false" variant="secondary" class="flex-1">Annuler</UiButton>
-          <UiButton @click="confirmDelete" class="flex-1 bg-red-600 hover:bg-red-700 text-white border-red-700 shadow-xl shadow-red-500/20">Supprimer</UiButton>
-        </div>
-      </div>
-    </UiModal>
+    <ScheduleDeleteModal 
+      :show="showDeleteModal" 
+      :item="itemToDelete" 
+      @close="showDeleteModal = false" 
+      @confirm="confirmDelete" 
+    />
+
+    <ScheduleForceModal 
+      :show="showForceModal" 
+      :loading="loadingAction"
+      v-model:month="forceDate.month"
+      v-model:year="forceDate.year"
+      @close="showForceModal = false" 
+      @confirm="confirmForce" 
+    />
   </div>
 </template>

@@ -5,6 +5,7 @@ definePageMeta({
 
 import { useAccountDetail } from '~/composables/useAccountDetail'
 import { useTransactionActions } from '~/composables/useTransactionActions'
+import { useCreditAnalysis } from '~/composables/useCreditAnalysis'
 
 const route = useRoute()
 const accountId = route.params.id as string
@@ -21,34 +22,14 @@ const {
   handleBulkPoint, handleBulkDelete, handleExport, handleExportJSON
 } = useTransactionActions(accountId, account, transactions, pendingTransactions, filteredTransactions, selectedTransactions, currentDate, fetchData)
 
+const { amortizationSchedule, creditAnalysis } = useCreditAnalysis(account)
+
 const showAmortizationModal = ref(false)
+const showAnalyticsModal = ref(false)
 
 const currentMonthLabel = computed(() => {
   return currentDate.value.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
 })
-
-// Helpers pour l'affichage spécifique
-const getLoanEndDate = (acc: any) => {
-  if (!acc.loan_start_date || !acc.loan_duration) return 'Inconnue'
-  const end = new Date(acc.loan_start_date)
-  end.setMonth(end.getMonth() + acc.loan_duration)
-  return end.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })
-}
-
-const calculateYearlyInterest = (acc: any) => {
-  return (acc.current_balance * (acc.interest_rate / 100)).toLocaleString('fr-FR', { style: 'currency', currency: acc.currency })
-}
-
-// Calculs pour le graphique Crédit (Capital vs Intérêts payés)
-// Note: C'est une estimation simplifiée basée sur l'avancement
-const getCreditProgress = (acc: any) => {
-  if (!acc.credit_amount || !acc.current_balance) return { capital: 0, interest: 0 }
-  const totalPaid = acc.credit_amount - Math.abs(acc.current_balance)
-  // Estimation : Au début on paie surtout des intérêts. Ratio simplifié pour l'exemple.
-  // Pour un vrai calcul, il faudrait l'historique d'amortissement.
-  const progress = totalPaid / acc.credit_amount
-  return { capital: progress * 100, interest: 0 } // Simplifié pour l'instant
-}
 </script>
 
 <template>
@@ -65,6 +46,7 @@ const getCreditProgress = (acc: any) => {
       @add="handleEdit(null)"
       @prev-month="prevMonth"
       @next-month="nextMonth"
+      @show-analytics="showAnalyticsModal = true"
       @show-amortization="showAmortizationModal = true"
       @bulk-point="handleBulkPoint"
       @bulk-delete="handleBulkDelete"
@@ -76,7 +58,10 @@ const getCreditProgress = (acc: any) => {
         <div v-if="account?.account_group === 'credit'" class="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
            <!-- Card 1: Capital Restant -->
            <div class="flex flex-col items-end min-w-[140px]">
-              <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest mb-0.5">Capital Restant</p>
+              <div class="flex justify-between w-full mb-0.5">
+                <p class="text-[9px] font-black text-ui-content-muted uppercase tracking-widest">Capital Restant</p>
+                <p class="text-[9px] font-bold text-emerald-600">{{ (100 - (Math.abs(account.current_balance) / account.credit_amount) * 100).toFixed(0) }}% payé</p>
+              </div>
               <p class="text-lg font-black text-red-600 leading-none">{{ account.current_balance.toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</p>
               <div class="w-full bg-ui-surface-muted h-1 rounded-full mt-1.5 overflow-hidden">
                  <div class="h-full flex rounded-full overflow-hidden">
@@ -95,7 +80,9 @@ const getCreditProgress = (acc: any) => {
                  <p class="text-lg font-black text-ui-content leading-none">{{ Number(account.monthly_payment).toLocaleString('fr-FR', { style: 'currency', currency: account.currency }) }}</p>
                  <span class="text-[9px] text-ui-content-muted">/mois</span>
               </div>
-              <span class="text-[9px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mt-1">Fin : {{ getLoanEndDate(account) }}</span>
+              <span class="text-[9px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mt-1" :title="'Fin : ' + getLoanEndDate(account)">
+                Reste : {{ getRemainingDuration(account) }}
+              </span>
            </div>
 
            <div class="w-px h-8 bg-ui-border mx-2"></div>
@@ -132,15 +119,16 @@ const getCreditProgress = (acc: any) => {
                  <span class="text-[9px] text-ui-content-muted">/an</span>
               </div>
               <div class="flex items-center gap-1 mt-1">
-                 <span class="text-[9px] font-bold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded">{{ account.interest_rate }}%</span>
+                 <span class="text-[9px] font-medium text-ui-content-muted">Soit ~{{ calculateMonthlyInterest(account) }} /mois</span>
+                 <span class="text-[9px] font-bold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded ml-1">{{ account.interest_rate }}%</span>
               </div>
            </div>
         </div>
       </template>
     </DashboardAccountToolbar>
 
-    <!-- Liste des transactions -->
-    <DashboardTransactionTable 
+    <!-- Liste des transactions (Pleine largeur) -->
+    <DashboardTransactionTable
       v-if="account"
       :transactions="filteredTransactions"
       :loading="loading"
@@ -185,6 +173,32 @@ const getCreditProgress = (acc: any) => {
     </UiModal>
 
     <!-- Modal Amortissement -->
-    <DashboardAmortizationModal :show="showAmortizationModal" :account="account" @close="showAmortizationModal = false" />
+    <DashboardAmortizationModal 
+      :show="showAmortizationModal" 
+      :schedule="amortizationSchedule"
+      :analysis="creditAnalysis"
+      @close="showAmortizationModal = false" />
+
+    <!-- Modal Analyses -->
+    <UiModal :show="showAnalyticsModal">
+       <div class="bg-ui-surface border border-ui-border p-6 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-black text-ui-content tracking-tight">Analyses du mois</h3>
+            <button @click="showAnalyticsModal = false" class="text-ui-content-muted hover:text-ui-content transition-colors">
+              <Icon name="lucide:x" class="w-5 h-5" />
+            </button>
+          </div>
+          
+          <DashboardAccountWidgets 
+            v-if="account"
+            :account="account"
+            :filtered-transactions="filteredTransactions"
+            :balances="balances"
+            :credit-analysis="creditAnalysis"
+            v-model:filter-type="filterType"
+            v-model:search-query="searchQuery"
+          />
+       </div>
+    </UiModal>
   </div>  
 </template>

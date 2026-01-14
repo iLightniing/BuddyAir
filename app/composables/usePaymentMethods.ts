@@ -1,13 +1,5 @@
 import { ref, computed } from 'vue'
-
-const defaultPaymentMethods = [
-  { name: 'Carte Bancaire', code: 'card', icon: 'lucide:credit-card' },
-  { name: 'Virement', code: 'transfer', icon: 'lucide:arrow-right-left' },
-  { name: 'Prélèvement', code: 'direct_debit', icon: 'lucide:landmark' },
-  { name: 'Espèces', code: 'cash', icon: 'lucide:banknote' },
-  { name: 'Chèque', code: 'check', icon: 'lucide:scroll-text' },
-  { name: 'Autre', code: 'other', icon: 'lucide:more-horizontal' }
-]
+import { DEFAULT_PAYMENT_METHODS } from '~/utils/constants'
 
 export const usePaymentMethods = () => {
   const pb = usePocketBase()
@@ -38,7 +30,7 @@ export const usePaymentMethods = () => {
     } catch (e) {
       // Fallback local si la collection n'existe pas encore
       if (paymentMethods.value.length === 0) {
-         paymentMethods.value = defaultPaymentMethods.map((pm, index) => ({
+         paymentMethods.value = DEFAULT_PAYMENT_METHODS.map((pm, index) => ({
           id: 'local_' + index,
           ...pm,
           order: index
@@ -51,7 +43,7 @@ export const usePaymentMethods = () => {
 
   const initializeDefaults = async (userId: string) => {
     try {
-        const promises = defaultPaymentMethods.map((pm, index) => {
+        const promises = DEFAULT_PAYMENT_METHODS.map((pm, index) => {
         return pb.collection('payment_methods').create({
             user: userId,
             name: pm.name,

@@ -1,3 +1,5 @@
+import { CHART_COLORS, generateConicGradient } from '~/utils/chart'
+
 export const useFinancialStats = () => {
   const pb = usePocketBase()
   const user = usePocketBaseUser()
@@ -18,9 +20,6 @@ export const useFinancialStats = () => {
   const pendingRecurring = ref(0)
   const safeToSpend = ref(0)
   const categoryData = ref<{ label: string, value: number, color: string, percentage: number }[]>([])
-
-  // Couleurs pour les catégories
-  const chartColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#10b981', '#06b6d4']
 
   const fetchData = async () => {
     if (!user.value) return
@@ -80,7 +79,7 @@ export const useFinancialStats = () => {
       categoryData.value = sortedCategories.map(([label, value], index) => ({
         label,
         value,
-        color: chartColors[index % chartColors.length] || '#cccccc',
+        color: CHART_COLORS[index % CHART_COLORS.length] || '#cccccc',
         percentage: expense > 0 ? (value / expense) * 100 : 0
       }))
 
@@ -180,15 +179,7 @@ export const useFinancialStats = () => {
   }
 
   const conicGradientStyle = computed(() => {
-    let currentAngle = 0
-    const segments = categoryData.value.map(cat => {
-      const start = currentAngle
-      const end = currentAngle + cat.percentage
-      currentAngle = end
-      return `${cat.color} ${start}% ${end}%`
-    })
-    if (segments.length === 0) return 'conic-gradient(#f1f5f9 0% 100%)'
-    return `conic-gradient(${segments.join(', ')})`
+    return generateConicGradient(categoryData.value)
   })
 
   // Recharger quand le compte change

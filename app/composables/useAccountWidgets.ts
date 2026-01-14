@@ -1,8 +1,7 @@
 import { getLoanEndDate, getRemainingDuration } from '~/utils/account'
+import { CHART_COLORS, generateConicGradient } from '~/utils/chart'
 
 export const useAccountWidgets = (props: any) => {
-  const chartColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#10b981', '#06b6d4']
-
   const monthlyStats = computed(() => {
     return props.filteredTransactions.reduce((acc: any, t: any) => {
       if (t.type === 'income') acc.income += t.amount
@@ -25,20 +24,12 @@ export const useAccountWidgets = (props: any) => {
         label, 
         value, 
         percentage: (value / total) * 100,
-        color: chartColors[index % chartColors.length] 
+        color: CHART_COLORS[index % CHART_COLORS.length] || '#cccccc'
       }))
   })
 
   const conicGradientStyle = computed(() => {
-    let currentAngle = 0
-    const segments = categoryStats.value.map(cat => {
-      const start = currentAngle
-      const end = currentAngle + cat.percentage
-      currentAngle = end
-      return `${cat.color} ${start}% ${end}%`
-    })
-    if (segments.length === 0) return 'conic-gradient(#f1f5f9 0% 100%)'
-    return `conic-gradient(${segments.join(', ')})`
+    return generateConicGradient(categoryStats.value)
   })
 
   const savingsProjection = computed(() => {

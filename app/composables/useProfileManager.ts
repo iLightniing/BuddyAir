@@ -1,3 +1,5 @@
+import { SEX_OPTIONS } from '~/utils/constants'
+
 export const useProfileManager = () => {
   const pb = usePocketBase()
   const { notify } = useNotification()
@@ -19,11 +21,7 @@ export const useProfileManager = () => {
     phone: ''
   })
 
-  const sexOptions = [
-    { label: 'Homme', value: 'Homme' },
-    { label: 'Femme', value: 'Femme' },
-    { label: 'Autre', value: 'Autre' }
-  ]
+  const sexOptions = SEX_OPTIONS
 
   const initForm = () => {
     if (user.value) {

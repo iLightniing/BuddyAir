@@ -1,3 +1,5 @@
+import { getDaysInMonth, formatInputDate, parseInputDate } from '~/utils/date'
+
 export const useDatePicker = (
   model: Ref<string | undefined>,
   containerRef: Ref<HTMLElement | null>,
@@ -47,20 +49,7 @@ export const useDatePicker = (
   const daysInMonth = computed(() => {
     const year = navigationDate.value.getFullYear()
     const month = navigationDate.value.getMonth()
-    const date = new Date(year, month, 1)
-    const days = []
-    
-    // Lundi = 0, Dimanche = 6 (Ajustement du getDay() qui renvoie Dimanche=0)
-    let firstDayIndex = date.getDay() - 1
-    if (firstDayIndex === -1) firstDayIndex = 6
-    
-    for (let i = 0; i < firstDayIndex; i++) days.push(null)
-    
-    while (date.getMonth() === month) {
-      days.push(new Date(date))
-      date.setDate(date.getDate() + 1)
-    }
-    return days
+    return getDaysInMonth(year, month)
   })
 
   const handlePrev = () => {
@@ -96,31 +85,16 @@ export const useDatePicker = (
 
   // Gestion de la saisie manuelle (Affichage -> Modèle)
   const handleInput = (e: Event) => {
-    let val = (e.target as HTMLInputElement).value.replace(/\D/g, '') // Garder que les chiffres
-    if (val.length > 8) val = val.slice(0, 8)
-    
-    // Masque automatique : JJ/MM/AAAA
-    if (val.length >= 5) {
-      val = val.slice(0, 2) + '/' + val.slice(2, 4) + '/' + val.slice(4)
-    } else if (val.length >= 3) {
-      val = val.slice(0, 2) + '/' + val.slice(2)
-    }
-    
-    displayValue.value = val
+    const val = (e.target as HTMLInputElement).value
+    const formatted = formatInputDate(val)
+    displayValue.value = formatted
     
     // Si la date est complète (10 chars), on essaie de mettre à jour le modèle
-    if (val.length === 10) {
-      const [day = 0, month = 0, year = 0] = val.split('/').map(Number)
-      const date = new Date(year, (month || 1) - 1, day || 1)
-      // Vérification de validité (ex: pas de 32/01)
-      if (date.getFullYear() === year && date.getMonth() === (month || 1) - 1 && date.getDate() === day) {
-        const y = date.getFullYear()
-        const m = String(date.getMonth() + 1).padStart(2, '0')
-        const d = String(date.getDate()).padStart(2, '0')
-        model.value = `${y}-${m}-${d}`
-        navigationDate.value = date
-      }
-    } else if (val === '') {
+    const parsed = parseInputDate(formatted)
+    if (parsed) {
+        model.value = parsed
+        navigationDate.value = new Date(parsed)
+    } else if (formatted === '') {
       model.value = ''
     }
   }

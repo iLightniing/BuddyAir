@@ -1,3 +1,5 @@
+import { getProgressColor as getColor, getPaceStatus as getStatus } from '~/utils/budget'
+
 export const useBudgetStats = (
   budgets: Ref<any[]>,
   transactions: Ref<any[]>,
@@ -10,21 +12,11 @@ export const useBudgetStats = (
 ) => {
   // --- Helpers ---
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-red-500'
-    if (percentage >= 85) return 'bg-orange-500'
-    return 'bg-emerald-500'
+    return getColor(percentage)
   }
 
   const getPaceStatus = (percentage: number) => {
-    const now = new Date()
-    if (currentDate.value.getMonth() !== now.getMonth() || currentDate.value.getFullYear() !== now.getFullYear()) return null
-    
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-    const monthProgress = (now.getDate() / daysInMonth) * 100
-    
-    if (percentage > monthProgress + 15) return { label: 'Rythme élevé', class: 'text-red-500 bg-red-50 border-red-100' }
-    if (percentage < monthProgress - 10) return { label: 'Économe', class: 'text-emerald-600 bg-emerald-50 border-emerald-100' }
-    return { label: 'Dans les temps', class: 'text-blue-600 bg-blue-50 border-blue-100' }
+    return getStatus(percentage, currentDate.value)
   }
 
   // --- Computed Stats ---

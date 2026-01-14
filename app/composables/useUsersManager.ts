@@ -1,3 +1,5 @@
+import { USER_ROLES } from '~/utils/constants'
+
 export const useUsersManager = () => {
   const pb = usePocketBase()
   const { notify } = useNotification()
@@ -15,11 +17,7 @@ export const useUsersManager = () => {
     role: 1
   })
 
-  const roles = [
-    { value: 1, label: 'Utilisateur (Free)', class: 'bg-gray-100 text-gray-600' },
-    { value: 2, label: 'Premium', class: 'bg-amber-100 text-amber-700' },
-    { value: 3, label: 'Administrateur', class: 'bg-purple-100 text-purple-700' }
-  ]
+  const roles = USER_ROLES
 
   const fetchUsers = async () => {
     loading.value = true

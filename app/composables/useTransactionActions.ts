@@ -108,26 +108,24 @@ export function useTransactionActions(
   }
 
   const handleExport = () => {
-    const headers = ['Date', 'Description', 'Catégorie', 'Type', 'Montant', 'Statut']
-    const csvContent = [
-      headers.join(','),
-      ...filteredTransactions.value.map(tx => [
-        new Date(tx.date).toLocaleDateString('fr-FR'),
-        `"${(tx.description || '').replace(/"/g, '""')}"`,
-        `"${(tx.category || '').replace(/"/g, '""')}"`,
-        tx.type === 'expense' ? 'Dépense' : 'Revenu',
-        tx.type === 'expense' ? -Math.abs(tx.amount) : Math.abs(tx.amount),
-        tx.status === 'completed' ? 'Pointé' : 'En attente'
-      ].join(','))
-    ].join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `export_${account.value.name}_${currentDate.value.toISOString().slice(0,7)}.csv`; link.click()
+    const data = filteredTransactions.value.map(tx => ({
+        Date: new Date(tx.date).toLocaleDateString('fr-FR'),
+        Description: tx.description,
+        Catégorie: tx.category,
+        Type: tx.type === 'expense' ? 'Dépense' : 'Revenu',
+        Montant: tx.type === 'expense' ? -Math.abs(tx.amount) : Math.abs(tx.amount),
+        Statut: tx.status === 'completed' ? 'Pointé' : 'En attente'
+    }))
+    
+    const csvContent = convertToCSV(data)
+    const filename = `export_${account.value.name}_${currentDate.value.toISOString().slice(0,7)}.csv`
+    downloadFile(csvContent, filename, 'text/csv;charset=utf-8;')
   }
 
   const handleExportJSON = () => {
     const jsonContent = JSON.stringify(filteredTransactions.value, null, 2)
-    const blob = new Blob([jsonContent], { type: 'application/json' })
-    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `export_${account.value.name}_${currentDate.value.toISOString().slice(0,7)}.json`; link.click()
+    const filename = `export_${account.value.name}_${currentDate.value.toISOString().slice(0,7)}.json`
+    downloadFile(jsonContent, filename, 'application/json')
   }
 
   return {

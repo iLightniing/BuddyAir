@@ -1,16 +1,5 @@
 import { ref, computed } from 'vue'
-
-const defaultCategories = {
-  'Alimentation': ['Courses', 'Restaurant', 'Fast Food', 'Boulangerie', 'Autre'],
-  'Logement': ['Loyer', 'Électricité', 'Eau', 'Internet', 'Assurance', 'Travaux', 'Autre'],
-  'Transport': ['Carburant', 'Transport en commun', 'Entretien', 'Assurance', 'Parking', 'Péage', 'Autre'],
-  'Loisirs': ['Sorties', 'Sport', 'Voyage', 'Streaming', 'Jeux vidéo', 'Autre'],
-  'Santé': ['Médecin', 'Pharmacie', 'Mutuelle', 'Spécialiste', 'Autre'],
-  'Shopping': ['Vêtements', 'Électronique', 'Maison', 'Cadeaux', 'Autre'],
-  'Salaire': ['Salaire', 'Prime', 'Remboursement', 'Autre'],
-  'Services': ['Banque', 'Frais', 'Abonnement', 'Autre'],
-  'Autre': ['Autre']
-}
+import { DEFAULT_CATEGORIES } from '~/utils/constants'
 
 export const useCategories = () => {
   const pb = usePocketBase()
@@ -42,7 +31,7 @@ export const useCategories = () => {
       console.error("Erreur chargement catégories (Collection 'transaction_categories' manquante ?)", e)
       // Fallback local pour que l'app fonctionne même sans la collection
       if (categories.value.length === 0) {
-         categories.value = Object.entries(defaultCategories).map(([name, subs], index) => ({
+         categories.value = Object.entries(DEFAULT_CATEGORIES).map(([name, subs], index) => ({
           id: 'local_' + index,
           name,
           sub_categories: subs,
@@ -56,7 +45,7 @@ export const useCategories = () => {
 
   const initializeDefaults = async (userId: string) => {
     try {
-        const promises = Object.entries(defaultCategories).map(([name, subs], index) => {
+        const promises = Object.entries(DEFAULT_CATEGORIES).map(([name, subs], index) => {
         return pb.collection('transaction_categories').create({
             user: userId,
             name,

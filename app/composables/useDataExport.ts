@@ -4,36 +4,6 @@ export const useDataExport = () => {
   const isExporting = ref(false)
   const isImporting = ref(false)
 
-  const downloadFile = (content: string, filename: string, type: string) => {
-    const blob = new Blob([content], { type })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-  }
-
-  const convertToCSV = (objArray: any[]) => {
-    if (!objArray || objArray.length === 0) return ''
-    const array = typeof objArray !== 'object' ? JSON.parse(objArray) : objArray
-    
-    // Récupérer tous les headers possibles
-    const headers = Array.from(new Set(array.flatMap((row: Record<string, any>) => Object.keys(row)))) as string[]
-    const str = headers.join(',') + '\r\n'
-
-    return str + array.map((row: any) => {
-        return headers.map(fieldName => {
-            let value = (row as Record<string, any>)[fieldName]
-            if (value === null || value === undefined) return ''
-            if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`
-            return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
-        }).join(',')
-    }).join('\r\n')
-  }
-
   const exportData = async (collection: string, format: 'csv' | 'json') => {
     isExporting.value = true
     try {

@@ -1,3 +1,5 @@
+import { slugify } from '~/utils/string'
+
 export const usePaymentMethodsManager = () => {
   const pb = usePocketBase()
   const { notify } = useNotification()
@@ -57,9 +59,7 @@ export const usePaymentMethodsManager = () => {
       // Génération automatique du code si vide ou nouveau
       let code = form.value.code
       if (!code) {
-          code = form.value.name.toLowerCase()
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Enlever accents
-            .replace(/[^a-z0-9]/g, '_') // Remplacer caractères spéciaux
+          code = slugify(form.value.name)
       }
 
       const data = {

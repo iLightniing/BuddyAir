@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// Les imports (ref, computed, etc.) sont automatiques dans Nuxt 3
 const user = usePocketBaseUser()
 const route = useRoute()
 import { useCommandPalette } from '@/composables/useCommandPalette'
@@ -47,8 +46,9 @@ onUnmounted(() => {
   if (timer) clearInterval(timer)
 })
 
-// Placeholder pour la météo (Concise)
-const weather = ref({ temp: 4, icon: 'lucide:cloud-snow', label: 'Ciel voilé' })
+// Météo dynamique
+const { weather, fetchWeather } = useWeather()
+onMounted(fetchWeather)
 
 const { open } = useCommandPalette()
 </script>
@@ -76,8 +76,8 @@ const { open } = useCommandPalette()
       <!-- Météo -->
       <div class="hidden sm:flex items-center gap-3 px-3 py-1 cursor-default group/weather">
         <div class="flex flex-col items-end">
-          <span class="text-[9px] font-black text-ui-content-muted uppercase tracking-tighter">{{ weather.label }}</span>
-          <span class="text-xs font-black text-ui-content">{{ weather.temp }}°C</span>
+          <span class="text-[9px] font-black text-ui-content-muted uppercase tracking-tighter" :title="weather.city">{{ weather.label }}</span>
+          <span class="text-xs font-black text-ui-content">{{ weather.temp }}<span v-if="weather.temp !== '...'">°C</span></span>
         </div>
         <Icon :name="weather.icon" class="w-5 h-5 text-blue-400 group-hover/weather:rotate-[360deg] transition-transform duration-700 ease-in-out" />
       </div>

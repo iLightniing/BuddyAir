@@ -82,6 +82,14 @@ onMounted(fetchStats)
           <h3 class="text-lg font-bold text-ui-content mb-1">Patchnotes</h3>
           <p class="text-sm text-ui-content-muted">Publier les nouveautés et mises à jour.</p>
         </NuxtLink>
+
+        <NuxtLink to="/admin/logs" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-orange-300 hover:shadow-md transition-all group cursor-pointer">
+          <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Icon name="lucide:scroll-text" class="w-6 h-6" />
+          </div>
+          <h3 class="text-lg font-bold text-ui-content mb-1">Logs Système</h3>
+          <p class="text-sm text-ui-content-muted">Consulter les erreurs et activités.</p>
+        </NuxtLink>
       </div>
     </div>
   </div>

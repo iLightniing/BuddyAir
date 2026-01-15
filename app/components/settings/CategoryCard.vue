@@ -52,6 +52,7 @@ const onOrderChange = () => {
 
 // Édition Titre
 const startEditCat = () => {
+    if (!props.isAdmin && props.category.is_global_source) return
     editingCat.value = { id: props.category.id || props.category.name, value: props.category.name }
 }
 const saveEditCat = () => {
@@ -111,7 +112,7 @@ const cancelEdit = () => {
       
       <!-- Actions Header -->
       <div class="flex gap-1 shrink-0" v-if="!editingCat">
-        <button @click="startEditCat" class="p-1.5 hover:bg-blue-50 text-ui-content-muted hover:text-blue-600 rounded-md transition-colors" title="Modifier le nom">
+        <button v-if="isAdmin || !category.is_global_source" @click="startEditCat" class="p-1.5 hover:bg-blue-50 text-ui-content-muted hover:text-blue-600 rounded-md transition-colors" title="Modifier le nom">
             <Icon name="lucide:pen-line" class="w-4 h-4" />
         </button>
 

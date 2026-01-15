@@ -1,120 +1,169 @@
-import { slugify } from '~/utils/string'
+import { ref } from 'vue'
+import { mergePaymentMethods } from '~/utils/paymentMethodHelpers'
 
-export const usePaymentMethodsManager = () => {
+export const usePaymentMethodsManager = (isAdminMode = false) => {
   const pb = usePocketBase()
-  const { notify } = useNotification()
-  const { paymentMethods, fetchPaymentMethods } = usePaymentMethods()
+  const currentUser = usePocketBaseUser()
+  
+  const paymentMethods = ref<any[]>([])
+  const loading = ref(false)
 
+  // Modales
   const showModal = ref(false)
+  const showDeleteModal = ref(false)
+  const itemToDelete = ref<any>(null)
+  
+  // Formulaire
   const form = ref({
     id: '',
     name: '',
-    code: '',
-    icon: 'lucide:credit-card'
+    icon: 'lucide:credit-card',
+    is_global: false,
+    code: ''
   })
 
-  const showDeleteModal = ref(false)
-  const itemToDelete = ref<any>(null)
-
   const icons = [
-    'lucide:credit-card', 'lucide:banknote', 'lucide:landmark', 'lucide:arrow-right-left',
-    'lucide:scroll-text', 'lucide:wallet', 'lucide:smartphone', 'lucide:bitcoin',
-    'lucide:gift', 'lucide:shopping-cart', 'lucide:more-horizontal'
+    'lucide:credit-card', 'lucide:banknote', 'lucide:wallet', 
+    'lucide:smartphone', 'lucide:landmark', 'lucide:coins',
+    'lucide:bitcoin', 'lucide:gift', 'lucide:piggy-bank',
+    'lucide:shopping-cart', 'lucide:qr-code', 'lucide:receipt'
   ]
 
+  // --- Initialisation & Récupération ---
   const init = async () => {
-    await fetchPaymentMethods()
+    loading.value = true
+    try {
+      if (isAdminMode) {
+        // Admin : On gère la collection 'system_payment_methods' (Globales)
+        const records = await pb.collection('system_payment_methods').getFullList({
+          sort: '+name'
+        })
+        paymentMethods.value = records.map(r => ({ ...r, is_global_source: true }))
+      } else {
+        // User : On récupère les globales (System) ET les locales (User)
+        const globalRecords = await pb.collection('system_payment_methods').getFullList({
+          sort: '+name'
+        })
+        
+        const localRecords = currentUser.value ? await pb.collection('payment_methods').getFullList({
+          filter: `user = "${currentUser.value.id}"`,
+          sort: '+name'
+        }) : []
+
+        paymentMethods.value = mergePaymentMethods(globalRecords, localRecords)
+      }
+
+    } catch (e) {
+      console.error("Erreur chargement modes de paiement:", e)
+    } finally {
+      loading.value = false
+    }
   }
 
-  const updateOrder = async () => {
-    const promises = paymentMethods.value.map((pm, index) => {
-      return pb.collection('payment_methods').update(pm.id, { order: index })
-    })
-    try { await Promise.all(promises) } catch (e) {}
-  }
+  // --- Actions ---
 
-  const openModal = (item?: any) => {
+  const openModal = (item: any = null) => {
     if (item) {
-      form.value = {
-        id: item.id,
-        name: item.name,
-        code: item.code,
-        icon: item.icon
+      form.value = JSON.parse(JSON.stringify(item))
+      // Si c'est une globale pure (pas d'ID local), on s'assure que l'ID est vide pour créer une copie
+      if (!isAdminMode && !item.id && item.global_id) {
+          form.value.id = '' 
+          form.value.code = ''
       }
     } else {
-      form.value = {
-        id: '',
-        name: '',
-        code: '',
-        icon: 'lucide:credit-card'
-      }
+      form.value = { id: '', name: '', icon: 'lucide:credit-card', is_global: isAdminMode, code: '' }
     }
     showModal.value = true
   }
 
-  const save = async () => {
-    if (!form.value.name) return
-
-    try {
-      // Génération automatique du code si vide ou nouveau
-      let code = form.value.code
-      if (!code) {
-          code = slugify(form.value.name)
+  // Action générique pour sauvegarder (appelée par le composant carte pour l'édition inline)
+  const handleSaveMethod = async (itemData: any) => {
+      form.value = JSON.parse(JSON.stringify(itemData))
+      if (!isAdminMode && !itemData.id && itemData.global_id) {
+          form.value.id = ''
+          // Générer un code si manquant lors de la conversion global -> local
+          if (!(form.value as any).code) {
+             (form.value as any).code = form.value.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+          }
       }
+      await save()
+  }
 
-      const data = {
+  const save = async () => {
+    try {
+      const collectionName = isAdminMode ? 'system_payment_methods' : 'payment_methods'
+      
+      const data: any = {
         name: form.value.name,
-        code: code,
-        icon: form.value.icon
+        icon: form.value.icon,
+      }
+      
+      if (!isAdminMode) {
+          data.user = currentUser.value?.id
+          // Génération du code (slug) si non présent ou vide
+          if (!(form.value as any).code) {
+             data.code = form.value.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+          } else {
+             data.code = (form.value as any).code
+          }
       }
 
       if (form.value.id) {
-        await pb.collection('payment_methods').update(form.value.id, data)
-        notify("Moyen de paiement modifié", "success")
+        await pb.collection(collectionName).update(form.value.id, data)
       } else {
-        const user = pb.authStore.model
-        await pb.collection('payment_methods').create({
-          ...data,
-          user: user?.id,
-          order: paymentMethods.value.length
-        })
-        notify("Moyen de paiement ajouté", "success")
+        await pb.collection(collectionName).create(data)
       }
-      
-      // Rafraîchir la liste locale
-      const result = await pb.collection('payment_methods').getFullList({ sort: '+order' })
-      paymentMethods.value = result
-      
+
       showModal.value = false
+      await init()
     } catch (e) {
-      notify("Erreur lors de l'enregistrement", "error")
+      console.error("Erreur sauvegarde:", e)
     }
   }
 
   const requestDelete = (item: any) => {
-    // Protection des méthodes système de base pour éviter de casser la logique de virement
-    if (['transfer'].includes(item.code)) {
-        notify("Ce moyen de paiement système ne peut pas être supprimé.", "error")
-        return
-    }
     itemToDelete.value = item
     showDeleteModal.value = true
   }
 
   const confirmDelete = async () => {
     if (!itemToDelete.value) return
+
     try {
-      await pb.collection('payment_methods').delete(itemToDelete.value.id)
-      paymentMethods.value = paymentMethods.value.filter(p => p.id !== itemToDelete.value.id)
-      notify("Supprimé avec succès", "success")
-      showDeleteModal.value = false
+        const idToDelete = itemToDelete.value.id
+        
+        if (isAdminMode) {
+             if (idToDelete) await pb.collection('system_payment_methods').delete(idToDelete)
+        } else {
+             if (idToDelete) await pb.collection('payment_methods').delete(idToDelete)
+        }
+        
+        showDeleteModal.value = false
+        itemToDelete.value = null
+        await init()
     } catch (e) {
-      notify("Erreur suppression", "error")
+        console.error("Erreur suppression:", e)
     }
   }
 
+  const updateOrder = () => {
+    // Logique de tri si nécessaire
+  }
+
   return {
-    paymentMethods, showModal, form, showDeleteModal, itemToDelete, icons,
-    init, updateOrder, openModal, save, requestDelete, confirmDelete
+    paymentMethods,
+    loading,
+    showModal,
+    form,
+    showDeleteModal,
+    itemToDelete,
+    icons,
+    init,
+    updateOrder,
+    openModal,
+    save,
+    handleSaveMethod,
+    requestDelete,
+    confirmDelete
   }
 }

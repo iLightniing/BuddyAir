@@ -18,7 +18,7 @@ onMounted(fetchStats)
     
     <!-- Zone pour les futurs widgets -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-       <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between relative overflow-hidden group animate-in zoom-in-50 duration-500">
+       <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between relative overflow-hidden group animate-in zoom-in-50 duration-500 transition-all hover:scale-[1.02] hover:shadow-lg">
           <div class="text-center">
             <p class="text-sm font-medium text-ui-content-muted mb-1">Utilisateurs</p>
             <p class="text-3xl font-black text-ui-content">{{ loading ? '...' : stats.totalUsers }}</p>
@@ -27,7 +27,7 @@ onMounted(fetchStats)
              <Icon name="lucide:users" class="w-6 h-6" />
           </div>
        </div>
-       <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between animate-in zoom-in-50 duration-500 delay-150">
+       <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between animate-in zoom-in-50 duration-500 delay-150 transition-all hover:scale-[1.02] hover:shadow-lg">
           <div class="text-center">
             <p class="text-sm font-medium text-ui-content-muted mb-1">Premium</p>
             <p class="text-3xl font-black text-amber-600">{{ loading ? '...' : stats.premiumUsers }}</p>
@@ -36,7 +36,7 @@ onMounted(fetchStats)
              <Icon name="lucide:crown" class="w-6 h-6" />
           </div>
        </div>
-       <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between animate-in zoom-in-50 duration-500 delay-300">
+       <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between animate-in zoom-in-50 duration-500 delay-300 transition-all hover:scale-[1.02] hover:shadow-lg">
           <div class="text-center">
             <p class="text-sm font-medium text-ui-content-muted mb-1">Transactions</p>
             <p class="text-3xl font-black text-emerald-600">{{ loading ? '...' : stats.totalTransactions }}</p>

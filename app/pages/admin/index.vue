@@ -59,6 +59,14 @@ onMounted(fetchStats)
           <p class="text-sm text-ui-content-muted">Gérer les comptes, les rôles et les accès.</p>
         </NuxtLink>
 
+        <NuxtLink to="/admin/categories" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-indigo-300 hover:shadow-md transition-all group cursor-pointer">
+          <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Icon name="lucide:tags" class="w-6 h-6" />
+          </div>
+          <h3 class="text-lg font-bold text-ui-content mb-1">Catégories</h3>
+          <p class="text-sm text-ui-content-muted">Gérer les catégories globales du système.</p>
+        </NuxtLink>
+
         <NuxtLink to="/admin/patchnotes" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-purple-300 hover:shadow-md transition-all group cursor-pointer">
           <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Icon name="lucide:file-text" class="w-6 h-6" />

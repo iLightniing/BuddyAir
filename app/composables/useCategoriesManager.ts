@@ -1,128 +1,149 @@
-export const useCategoriesManager = () => {
-  const pb = usePocketBase()
-  const { notify } = useNotification()
-  const { categories, fetchCategories } = useCategories()
+import { ref } from 'vue'
+import { mergeCategories } from '~/utils/categoryHelpers'
 
+export const useCategoriesManager = (isAdminMode = false) => {
+  const pb = usePocketBase()
+  const currentUser = usePocketBaseUser()
+  
+  const categoriesList = ref<any[]>([])
+  const loading = ref(false)
+
+  // Modales
   const showModal = ref(false)
+  const showDeleteModal = ref(false)
+  const categoryToDelete = ref<any>(null)
+  
+  // Formulaire
   const categoryForm = ref({
     id: '',
     name: '',
-    sub_categories: [] as string[]
+    sub_categories: [] as string[],
+    is_global: false
   })
-  const newSubCategoryName = ref('')
 
-  const showDeleteModal = ref(false)
-  const categoryToDelete = ref<any>(null)
-
-  const categoriesList = ref<any[]>([])
-
+  // --- Initialisation & Récupération ---
   const init = async () => {
-    await fetchCategories()
-    categoriesList.value = [...categories.value]
-  }
-
-  const updateOrder = async () => {
-    // Mise à jour de l'ordre dans la base
-    const promises = categoriesList.value.map((cat, index) => {
-      return pb.collection('transaction_categories').update(cat.id, { order: index })
-    })
+    loading.value = true
     try {
-      await Promise.all(promises)
-      categories.value = categoriesList.value // Mise à jour du state global
+      if (isAdminMode) {
+        // Admin : On gère la collection 'categories' (Globales)
+        const records = await pb.collection('categories').getFullList({
+          sort: '+name'
+        })
+        categoriesList.value = records.map(r => ({ ...r, is_global: true, locked_subs: [] }))
+      } else {
+        // User : On récupère les globales ET les locales
+        const globalRecords = await pb.collection('categories').getFullList({
+          sort: '+name'
+        })
+        
+        const localRecords = currentUser.value ? await pb.collection('transaction_categories').getFullList({
+          filter: `user = "${currentUser.value.id}"`,
+          sort: '+name'
+        }) : []
+
+        // Utilisation de la fonction utilitaire extraite
+        categoriesList.value = mergeCategories(globalRecords, localRecords)
+      }
+
     } catch (e) {
-      console.error("Erreur sauvegarde ordre", e)
+      console.error("Erreur chargement catégories:", e)
+    } finally {
+      loading.value = false
     }
   }
 
-  const openModal = (cat?: any) => {
-    if (cat) {
-      categoryForm.value = {
-        id: cat.id,
-        name: cat.name,
-        sub_categories: [...(cat.sub_categories || [])]
+  // --- Actions ---
+
+  const openModal = (category: any = null) => {
+    if (category) {
+      categoryForm.value = JSON.parse(JSON.stringify(category))
+      if (!isAdminMode && !category.id && category.global_id) {
+          categoryForm.value.id = '' 
       }
     } else {
-      categoryForm.value = {
-        id: '',
-        name: '',
-        sub_categories: []
-      }
+      categoryForm.value = { id: '', name: '', sub_categories: [], is_global: isAdminMode }
     }
-    newSubCategoryName.value = ''
     showModal.value = true
   }
 
-  const saveCategory = async () => {
-    if (!categoryForm.value.name) return
-
-    try {
-      if (categoryForm.value.id) {
-        // Update
-        await pb.collection('transaction_categories').update(categoryForm.value.id, {
-          name: categoryForm.value.name,
-          sub_categories: categoryForm.value.sub_categories
-        })
-        // Update local state
-        const index = categories.value.findIndex(c => c.id === categoryForm.value.id)
-        if (index !== -1) {
-          categories.value[index] = { ...categories.value[index], name: categoryForm.value.name, sub_categories: categoryForm.value.sub_categories }
-          categoriesList.value = [...categories.value]
-        }
-        notify("Catégorie modifiée", "success")
-      } else {
-        // Create
-        const user = pb.authStore.model
-        const newCat = await pb.collection('transaction_categories').create({
-          user: user?.id,
-          name: categoryForm.value.name,
-          sub_categories: categoryForm.value.sub_categories,
-          order: categoriesList.value.length
-        })
-        categories.value.push(newCat)
-        categoriesList.value = [...categories.value]
-        notify("Catégorie ajoutée", "success")
+  // Action générique pour sauvegarder une catégorie (appelée par le composant carte)
+  const handleSaveCategory = async (categoryData: any) => {
+      // On prépare le formulaire avec les données reçues
+      categoryForm.value = JSON.parse(JSON.stringify(categoryData))
+      // Si c'est une globale pure (pas d'ID local), on s'assure que l'ID est vide pour créer une copie
+      if (!isAdminMode && !categoryData.id && categoryData.global_id) {
+          categoryForm.value.id = ''
       }
+      await saveCategory()
+  }
+
+  const saveCategory = async () => {
+    try {
+      const data = {
+        name: categoryForm.value.name,
+        sub_categories: categoryForm.value.sub_categories,
+        user: isAdminMode ? null : currentUser.value?.id,
+        is_system: isAdminMode
+      }
+      
+      const collectionName = isAdminMode ? 'categories' : 'transaction_categories'
+
+      if (categoryForm.value.id) {
+        await pb.collection(collectionName).update(categoryForm.value.id, data)
+      } else {
+        await pb.collection(collectionName).create(data)
+      }
+
       showModal.value = false
+      await init()
     } catch (e) {
-      notify("Erreur lors de l'enregistrement", "error")
+      console.error("Erreur sauvegarde:", e)
     }
   }
 
-  const addSubCategory = () => {
-    if (!newSubCategoryName.value) return
-    if (categoryForm.value.sub_categories.includes(newSubCategoryName.value)) {
-      notify("Cette sous-catégorie existe déjà", "error")
-      return
-    }
-    categoryForm.value.sub_categories.push(newSubCategoryName.value)
-    newSubCategoryName.value = ''
-  }
-
-  const removeSubCategory = (index: number) => {
-    categoryForm.value.sub_categories.splice(index, 1)
-  }
-
-  const requestDelete = (cat: any) => {
-    categoryToDelete.value = cat
+  const requestDelete = (category: any) => {
+    categoryToDelete.value = category
     showDeleteModal.value = true
   }
 
   const confirmDelete = async () => {
     if (!categoryToDelete.value) return
+
     try {
-      await pb.collection('transaction_categories').delete(categoryToDelete.value.id)
-      categories.value = categories.value.filter(c => c.id !== categoryToDelete.value.id)
-      categoriesList.value = [...categories.value]
-      notify("Catégorie supprimée", "success")
-      if (categoryForm.value.id === categoryToDelete.value.id) showModal.value = false
-      showDeleteModal.value = false
+        const idToDelete = categoryToDelete.value.id
+        
+        if (isAdminMode) {
+             if (idToDelete) await pb.collection('categories').delete(idToDelete)
+        } else {
+             if (idToDelete) await pb.collection('transaction_categories').delete(idToDelete)
+        }
+        
+        showDeleteModal.value = false
+        categoryToDelete.value = null
+        await init()
     } catch (e) {
-      notify("Erreur suppression", "error")
+        console.error("Erreur suppression:", e)
     }
   }
 
+  const updateOrder = () => {
+    // Logique de tri des catégories parents si nécessaire
+  }
+
   return {
-    categoriesList, showModal, categoryForm, newSubCategoryName, showDeleteModal, categoryToDelete,
-    init, updateOrder, openModal, saveCategory, addSubCategory, removeSubCategory, requestDelete, confirmDelete
+    categoriesList,
+    loading,
+    showModal,
+    categoryForm,
+    showDeleteModal,
+    categoryToDelete,
+    init,
+    updateOrder,
+    openModal,
+    saveCategory,
+    handleSaveCategory, // Nouvelle méthode exposée
+    requestDelete,
+    confirmDelete
   }
 }

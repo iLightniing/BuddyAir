@@ -10,6 +10,7 @@ const navItems = [
   { icon: 'lucide:rocket', label: 'Projet', to: '/dashboard/projects' },
   { icon: 'lucide:bar-chart-3', label: 'Analyses', to: '/dashboard/stats' },
   { icon: 'lucide:user', label: 'Profil', to: '/dashboard/profile' },
+  { icon: 'lucide:sparkles', label: 'Nouveautés', to: '/patchnotes' },
   { icon: 'lucide:settings', label: 'Paramètres', to: '/dashboard/settings' },
 ]
 

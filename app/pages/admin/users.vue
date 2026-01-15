@@ -30,9 +30,7 @@ const cancelDelete = () => {
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <NuxtLink to="/admin" class="p-2 hover:bg-ui-surface-muted rounded-md text-ui-content-muted hover:text-ui-content transition-colors">
-          <Icon name="lucide:arrow-left" class="w-5 h-5" />
-        </NuxtLink>
+        <UiBackButton to="/admin" />
         <h1 class="text-2xl font-black text-ui-content tracking-tight">Utilisateurs</h1>
       </div>
       <div class="text-sm text-ui-content-muted font-bold">

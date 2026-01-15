@@ -89,3 +89,15 @@ export const SEX_OPTIONS = [
     { label: 'Femme', value: 'Femme' },
     { label: 'Autre', value: 'Autre' }
 ]
+
+export const PATCHNOTE_TYPES = [
+    { label: 'Nouveauté', value: 'feature', class: 'bg-emerald-100 text-emerald-700 border-emerald-200', text: 'text-emerald-700' },
+    { label: 'Correction', value: 'fix', class: 'bg-red-100 text-red-700 border-red-200', text: 'text-red-700' },
+    { label: 'Amélioration', value: 'improvement', class: 'bg-blue-100 text-blue-700 border-blue-200', text: 'text-blue-700' }
+]
+
+export const ROADMAP_STATUSES = [
+    { label: 'Prévu', value: 'planned', class: 'bg-slate-100 text-slate-600 border-slate-200', icon: 'lucide:calendar' },
+    { label: 'En cours', value: 'in_progress', class: 'bg-blue-100 text-blue-700 border-blue-200', icon: 'lucide:loader-2' },
+    { label: 'Bientôt', value: 'coming_soon', class: 'bg-purple-100 text-purple-700 border-purple-200', icon: 'lucide:rocket' }
+]

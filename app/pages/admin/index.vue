@@ -85,12 +85,12 @@ onMounted(fetchStats)
     <div>
       <h2 class="text-lg font-bold text-ui-content mb-4">Modules de gestion</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <NuxtLink to="/admin/users" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all group cursor-pointer">
+        <NuxtLink to="/admin/announcements" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all group cursor-pointer">
           <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <Icon name="lucide:users" class="w-6 h-6" />
+            <Icon name="lucide:megaphone" class="w-6 h-6" />
           </div>
-          <h3 class="text-lg font-bold text-ui-content mb-1">Utilisateurs</h3>
-          <p class="text-sm text-ui-content-muted">Gérer les comptes, les rôles et les accès.</p>
+          <h3 class="text-lg font-bold text-ui-content mb-1">Annonces</h3>
+          <p class="text-sm text-ui-content-muted">Diffuser des messages aux utilisateurs.</p>
         </NuxtLink>
 
         <NuxtLink to="/admin/categories" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-indigo-300 hover:shadow-md transition-all group cursor-pointer">
@@ -99,6 +99,14 @@ onMounted(fetchStats)
           </div>
           <h3 class="text-lg font-bold text-ui-content mb-1">Catégories</h3>
           <p class="text-sm text-ui-content-muted">Gérer les catégories globales du système.</p>
+        </NuxtLink>
+
+        <NuxtLink to="/admin/logs" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-orange-300 hover:shadow-md transition-all group cursor-pointer">
+          <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Icon name="lucide:scroll-text" class="w-6 h-6" />
+          </div>
+          <h3 class="text-lg font-bold text-ui-content mb-1">Logs Système</h3>
+          <p class="text-sm text-ui-content-muted">Consulter les erreurs et activités.</p>
         </NuxtLink>
 
         <NuxtLink to="/admin/payment-methods" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-emerald-300 hover:shadow-md transition-all group cursor-pointer">
@@ -117,12 +125,20 @@ onMounted(fetchStats)
           <p class="text-sm text-ui-content-muted">Publier les nouveautés et mises à jour.</p>
         </NuxtLink>
 
-        <NuxtLink to="/admin/logs" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-orange-300 hover:shadow-md transition-all group cursor-pointer">
-          <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <Icon name="lucide:scroll-text" class="w-6 h-6" />
+        <NuxtLink to="/admin/settings" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-slate-300 hover:shadow-md transition-all group cursor-pointer">
+          <div class="w-12 h-12 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Icon name="lucide:settings" class="w-6 h-6" />
           </div>
-          <h3 class="text-lg font-bold text-ui-content mb-1">Logs Système</h3>
-          <p class="text-sm text-ui-content-muted">Consulter les erreurs et activités.</p>
+          <h3 class="text-lg font-bold text-ui-content mb-1">Système</h3>
+          <p class="text-sm text-ui-content-muted">Maintenance et configuration globale.</p>
+        </NuxtLink>
+
+        <NuxtLink to="/admin/users" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all group cursor-pointer">
+          <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Icon name="lucide:users" class="w-6 h-6" />
+          </div>
+          <h3 class="text-lg font-bold text-ui-content mb-1">Utilisateurs</h3>
+          <p class="text-sm text-ui-content-muted">Gérer les comptes, les rôles et les accès.</p>
         </NuxtLink>
       </div>
     </div>

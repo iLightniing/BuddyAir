@@ -3,7 +3,8 @@ import { getDaysInMonth, formatInputDate, parseInputDate } from '~/utils/date'
 export const useDatePicker = (
   model: Ref<string | undefined>,
   containerRef: Ref<HTMLElement | null>,
-  inputRef: Ref<HTMLInputElement | null>
+  inputRef: Ref<HTMLInputElement | null>,
+  options: { enableTime?: boolean } = {}
 ) => {
   const isOpen = ref(false)
   const navigationDate = ref(new Date())
@@ -15,12 +16,18 @@ export const useDatePicker = (
     if (val) {
       // On gère le format YYYY-MM-DD ou ISO
       const datePart = val.split(/[T ]/)[0] ?? ''
+      const timePart = val.split(/[T ]/)[1]?.substring(0, 5) ?? '' // HH:MM
+
       const [y = 0, m = 0, d = 0] = datePart.split('-').map(Number)
       navigationDate.value = new Date(y, (m || 1) - 1, d || 1)
       
       // On ne met à jour l'affichage que si l'utilisateur n'est pas en train de taper
       if (typeof document !== 'undefined' && document.activeElement !== inputRef.value) {
-        displayValue.value = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`
+        let formatted = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`
+        if (options.enableTime && timePart) {
+            formatted += ` ${timePart}`
+        }
+        displayValue.value = formatted
       }
     } else if (typeof document !== 'undefined' && document.activeElement !== inputRef.value) {
       displayValue.value = ''
@@ -79,18 +86,41 @@ export const useDatePicker = (
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')
-    model.value = `${year}-${month}-${day}`
-    isOpen.value = false
+    
+    if (options.enableTime) {
+        // On préserve l'heure existante ou on met 00:00
+        let timePart = '00:00'
+        if (model.value && model.value.includes('T')) {
+            timePart = model.value.split('T')[1]?.substring(0, 5) ?? '00:00'
+        }
+        model.value = `${year}-${month}-${day}T${timePart}`
+        // On ne ferme pas le calendrier pour laisser l'utilisateur choisir l'heure si besoin
+    } else {
+        model.value = `${year}-${month}-${day}`
+        isOpen.value = false
+    }
+  }
+
+  const setTime = (hours: number, minutes: number) => {
+      let datePart = ''
+      if (model.value) {
+          datePart = model.value.split(/[T ]/)[0] ?? ''
+      } else {
+          // Si pas de date, on prend aujourd'hui
+          const now = new Date()
+          datePart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      }
+      model.value = `${datePart}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
   }
 
   // Gestion de la saisie manuelle (Affichage -> Modèle)
   const handleInput = (e: Event) => {
     const val = (e.target as HTMLInputElement).value
     const formatted = formatInputDate(val)
-    displayValue.value = formatted
+    displayValue.value = formatted ?? ''
     
     // Si la date est complète (10 chars), on essaie de mettre à jour le modèle
-    const parsed = parseInputDate(formatted)
+    const parsed = parseInputDate(formatted ?? '')
     if (parsed) {
         model.value = parsed
         navigationDate.value = new Date(parsed)
@@ -115,6 +145,6 @@ export const useDatePicker = (
 
   return {
     isOpen, displayValue, view, yearsList, monthsList, headerLabel, daysInMonth, navigationDate,
-    handlePrev, handleNext, selectYear, selectMonth, selectDate, handleInput, isSelected, isToday
+    handlePrev, handleNext, selectYear, selectMonth, selectDate, handleInput, isSelected, isToday, setTime
   }
 }

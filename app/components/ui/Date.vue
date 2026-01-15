@@ -7,6 +7,7 @@ const props = defineProps<{
   label?: string
   required?: boolean
   disabled?: boolean
+  enableTime?: boolean
 }>()
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -28,8 +29,41 @@ const {
   selectDate,
   handleInput,
   isSelected,
-  isToday
-} = useDatePicker(model, containerRef, inputRef)
+  isToday,
+  setTime
+} = useDatePicker(model, containerRef, inputRef, { enableTime: props.enableTime })
+
+// Gestion locale de l'heure pour les inputs
+const hours = ref('00')
+const minutes = ref('00')
+
+watch(model, (val) => {
+    if (val && val.includes('T')) {
+        const time = val.split('T')[1]
+        if (time) {
+            const [h, m] = time.split(':')
+            hours.value = h ?? '00'
+            minutes.value = m ?? '00'
+        }
+    }
+}, { immediate: true })
+
+const updateTime = () => {
+    let h = parseInt(hours.value)
+    let m = parseInt(minutes.value)
+    
+    if (isNaN(h)) h = 0
+    if (isNaN(m)) m = 0
+    
+    h = Math.max(0, Math.min(23, h))
+    m = Math.max(0, Math.min(59, m))
+    
+    // Formatage 2 chiffres
+    hours.value = String(h).padStart(2, '0')
+    minutes.value = String(m).padStart(2, '0')
+    
+    setTime(h, m)
+}
 </script>
 
 <template>
@@ -37,15 +71,17 @@ const {
     <label v-if="label" class="text-[10px] font-black text-ui-content-muted uppercase tracking-[0.2em] ml-1">
       {{ label }} <span v-if="required" class="text-red-500">*</span>
     </label>
+    
     <div class="relative group">
       <input 
         ref="inputRef"
         type="text"
         v-model="displayValue"
         @input="handleInput"
-        placeholder="JJ/MM/AAAA"
+        :placeholder="enableTime ? 'JJ/MM/AAAA HH:MM' : 'JJ/MM/AAAA'"
         :disabled="disabled"
         class="w-full bg-ui-surface border border-slate-400 rounded-md pl-10 pr-8 py-2 text-sm font-bold text-ui-content transition-all h-[52px] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder:text-ui-content-muted/50 disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-ui-surface-muted"
+        @focus="!disabled && (isOpen = true)"
       />
       <Icon v-if="disabled" name="lucide:lock" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ui-content-muted pointer-events-none" />
       
@@ -55,7 +91,7 @@ const {
         @click="isOpen = !isOpen"
         class="absolute left-3 top-1/2 -translate-y-1/2 text-ui-content-muted hover:text-blue-500 transition-colors"
       >
-        <Icon name="lucide:calendar" class="w-4 h-4" />
+        <Icon :name="enableTime ? 'lucide:clock' : 'lucide:calendar'" class="w-4 h-4" />
       </button>
       
       <!-- Bouton Effacer -->
@@ -64,7 +100,7 @@ const {
       </button>
       
       <!-- Dropdown Calendrier -->
-      <div v-if="isOpen" class="absolute top-full left-0 mt-2 w-64 bg-ui-surface border border-ui-border rounded-xl shadow-2xl z-50 p-3">
+      <div v-if="isOpen" class="absolute top-full left-0 mt-2 w-64 bg-ui-surface border border-ui-border rounded-xl shadow-2xl z-50 p-3 animate-in zoom-in-95 duration-200">
         <div class="flex items-center justify-between mb-2">
           <button type="button" @click.stop="handlePrev" class="p-1 hover:bg-ui-surface-muted rounded-lg text-ui-content-muted hover:text-ui-content"><Icon name="lucide:chevron-left" class="w-5 h-5" /></button>
           
@@ -100,6 +136,30 @@ const {
         <!-- Vue Années -->
         <div v-else-if="view === 'years'" class="grid grid-cols-3 gap-2">
           <button type="button" v-for="y in yearsList" :key="y" @click.stop="selectYear(y)" class="p-2 rounded-md text-xs font-bold hover:bg-ui-surface-muted text-ui-content" :class="y === navigationDate.getFullYear() ? 'bg-blue-50 text-blue-600' : ''">{{ y }}</button>
+        </div>
+
+        <!-- Sélecteur d'heure -->
+        <div v-if="enableTime" class="mt-3 pt-3 border-t border-ui-border">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-ui-content-muted uppercase tracking-wider">Heure</span>
+                <div class="flex items-center gap-1 bg-ui-surface-muted rounded-md p-1 border border-ui-border">
+                    <input 
+                        type="text" 
+                        v-model="hours" 
+                        @change="updateTime"
+                        class="w-8 text-center bg-transparent text-sm font-bold text-ui-content focus:outline-none"
+                        placeholder="HH"
+                    />
+                    <span class="text-ui-content-muted font-bold">:</span>
+                    <input 
+                        type="text" 
+                        v-model="minutes" 
+                        @change="updateTime"
+                        class="w-8 text-center bg-transparent text-sm font-bold text-ui-content focus:outline-none"
+                        placeholder="MM"
+                    />
+                </div>
+            </div>
         </div>
       </div>
     </div>

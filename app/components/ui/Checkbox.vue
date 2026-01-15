@@ -7,7 +7,7 @@ defineProps<{
 </script>
 
 <template>
-  <label class="flex items-center gap-2 cursor-pointer group justify-center">
+  <label class="flex items-center gap-2 cursor-pointer group">
     <div class="relative flex items-center">
       <input 
         type="checkbox" 

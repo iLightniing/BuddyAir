@@ -1,8 +1,10 @@
 import { USER_ROLES } from '~/utils/constants'
+import { useImpersonation } from '~/composables/useImpersonation'
 
 export const useUsersManager = () => {
   const pb = usePocketBase()
   const { notify } = useNotification()
+  const { startImpersonation } = useImpersonation()
   const loading = ref(true)
   const users = ref<any[]>([])
 
@@ -81,8 +83,12 @@ export const useUsersManager = () => {
     }
   }
 
+  const impersonate = async (user: any) => {
+    await startImpersonation(user)
+  }
+
   return {
     loading, users, showViewModal, showEditModal, showDeleteModal, selectedUser, editForm, roles,
-    fetchUsers, getRoleLabel, handleView, handleEdit, handleDelete, saveRole, confirmDelete
+    fetchUsers, getRoleLabel, handleView, handleEdit, handleDelete, saveRole, confirmDelete, impersonate
   }
 }

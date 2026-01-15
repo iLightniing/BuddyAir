@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { useSystemSettings } from '~/composables/useSystemSettings'
+
 const route = useRoute()
 // On récupère les infos dynamiques définies dans definePageMeta de chaque page
 const slogan = computed(() => (route.meta.authSlogan as string) || 'Votre épargne prend son envol')
 const icon = computed(() => (route.meta.authIcon as string) || 'lucide:snowflake')
+
+const { isMaintenanceNow } = useSystemSettings()
 </script>
 
 <template>
@@ -43,6 +47,15 @@ const icon = computed(() => (route.meta.authIcon as string) || 'lucide:snowflake
           </Transition>
         </div>
         <div class="flex-grow border-t border-ui-border"></div>
+      </div>
+
+      <!-- Maintenance Warning -->
+      <div v-if="isMaintenanceNow" class="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-start gap-3 text-orange-800">
+        <Icon name="lucide:construction" class="w-5 h-5 shrink-0 mt-0.5" />
+        <div class="text-sm">
+          <p class="font-bold">Maintenance en cours</p>
+          <p class="opacity-90">L'accès est temporairement restreint aux administrateurs.</p>
+        </div>
       </div>
 
       <!-- Contenu dynamique (Formulaires) -->

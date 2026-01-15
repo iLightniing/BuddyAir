@@ -17,6 +17,7 @@ defineProps<{
      </div>
      <div class="space-y-4">
         <UiSwitch v-model="preferences.newsletter" label="S'abonner à la newsletter" description="Recevoir les actualités et mises à jour de BuddyAir." />
+        <UiSwitch v-model="preferences.support_mode" label="Mode Support" description="Autoriser un administrateur à accéder à votre compte pour vous aider." />
      </div>
   </div>
 </template>

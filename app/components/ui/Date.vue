@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDatePicker } from '~/composables/useDatePicker'
+import { useTimeManagement } from '~/composables/useTimeManagement'
 
 const model = defineModel<string>()
 
@@ -33,37 +34,7 @@ const {
   setTime
 } = useDatePicker(model, containerRef, inputRef, { enableTime: props.enableTime })
 
-// Gestion locale de l'heure pour les inputs
-const hours = ref('00')
-const minutes = ref('00')
-
-watch(model, (val) => {
-    if (val && val.includes('T')) {
-        const time = val.split('T')[1]
-        if (time) {
-            const [h, m] = time.split(':')
-            hours.value = h ?? '00'
-            minutes.value = m ?? '00'
-        }
-    }
-}, { immediate: true })
-
-const updateTime = () => {
-    let h = parseInt(hours.value)
-    let m = parseInt(minutes.value)
-    
-    if (isNaN(h)) h = 0
-    if (isNaN(m)) m = 0
-    
-    h = Math.max(0, Math.min(23, h))
-    m = Math.max(0, Math.min(59, m))
-    
-    // Formatage 2 chiffres
-    hours.value = String(h).padStart(2, '0')
-    minutes.value = String(m).padStart(2, '0')
-    
-    setTime(h, m)
-}
+const { hours, minutes, updateTime, adjustTime } = useTimeManagement(model, setTime)
 </script>
 
 <template>
@@ -142,22 +113,34 @@ const updateTime = () => {
         <div v-if="enableTime" class="mt-3 pt-3 border-t border-ui-border">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-ui-content-muted uppercase tracking-wider">Heure</span>
-                <div class="flex items-center gap-1 bg-ui-surface-muted rounded-md p-1 border border-ui-border">
-                    <input 
-                        type="text" 
-                        v-model="hours" 
-                        @change="updateTime"
-                        class="w-8 text-center bg-transparent text-sm font-bold text-ui-content focus:outline-none"
-                        placeholder="HH"
-                    />
+                <div class="flex items-center gap-2">
+                    <!-- Heures -->
+                    <div class="flex flex-col items-center gap-1">
+                        <button type="button" @click.stop="adjustTime('hours', 1)" class="text-ui-content-muted hover:text-blue-600 p-0.5"><Icon name="lucide:chevron-up" class="w-3 h-3" /></button>
+                        <input 
+                            type="text" 
+                            v-model="hours" 
+                            @change="updateTime"
+                            class="w-12 text-center bg-slate-100 border border-slate-200 rounded-md text-lg font-black text-ui-content focus:outline-none focus:border-blue-500 focus:bg-white transition-colors py-1"
+                            placeholder="HH"
+                        />
+                        <button type="button" @click.stop="adjustTime('hours', -1)" class="text-ui-content-muted hover:text-blue-600 p-0.5"><Icon name="lucide:chevron-down" class="w-3 h-3" /></button>
+                    </div>
+                    
                     <span class="text-ui-content-muted font-bold">:</span>
-                    <input 
-                        type="text" 
-                        v-model="minutes" 
-                        @change="updateTime"
-                        class="w-8 text-center bg-transparent text-sm font-bold text-ui-content focus:outline-none"
-                        placeholder="MM"
-                    />
+                    
+                    <!-- Minutes -->
+                    <div class="flex flex-col items-center gap-1">
+                        <button type="button" @click.stop="adjustTime('minutes', 1)" class="text-ui-content-muted hover:text-blue-600 p-0.5"><Icon name="lucide:chevron-up" class="w-3 h-3" /></button>
+                        <input 
+                            type="text" 
+                            v-model="minutes" 
+                            @change="updateTime"
+                            class="w-12 text-center bg-slate-100 border border-slate-200 rounded-md text-lg font-black text-ui-content focus:outline-none focus:border-blue-500 focus:bg-white transition-colors py-1"
+                            placeholder="MM"
+                        />
+                        <button type="button" @click.stop="adjustTime('minutes', -1)" class="text-ui-content-muted hover:text-blue-600 p-0.5"><Icon name="lucide:chevron-down" class="w-3 h-3" /></button>
+                    </div>
                 </div>
             </div>
         </div>

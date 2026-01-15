@@ -1,10 +1,22 @@
 <script setup lang="ts">
+const pb = usePocketBase()
 const user = usePocketBaseUser()
-const refreshKey = ref(0)
 
-const refreshPage = () => {
-  refreshKey.value++
-}
+const { refreshKey } = useDashboardRefresh()
+const { isImpersonating, stopImpersonation } = useImpersonation()
+
+// Écoute temps réel pour le flag d'impersonation
+watch(() => user.value?.id, (newId, oldId) => {
+    if (oldId) pb.collection('users').unsubscribe(oldId)
+    if (newId) {
+        pb.collection('users').subscribe(newId, (e) => {
+             if (e.action === 'update' && user.value) {
+                 // Mise à jour silencieuse des données utilisateur (dont is_being_impersonated)
+                 user.value = { ...user.value, ...e.record }
+             }
+        })
+    }
+}, { immediate: true })
 </script>
 
 <template>
@@ -18,6 +30,26 @@ const refreshPage = () => {
       <!-- Header supérieur -->
       <DashboardHeader />
 
+      <!-- Bandeau Impersonation -->
+      <div v-if="isImpersonating" class="bg-indigo-600 text-white px-4 py-2 flex items-center justify-between shadow-md relative z-50">
+        <div class="flex items-center gap-2 text-sm font-medium">
+            <Icon name="lucide:venetian-mask" class="w-4 h-4" />
+            <span>Vous êtes connecté en tant qu'utilisateur.</span>
+        </div>
+        <button @click="stopImpersonation" class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-bold transition-colors border border-white/30">Revenir Admin</button>
+      </div>
+
+      <!-- Bandeau Mode Support (Visible par l'utilisateur uniquement) -->
+      <div v-else-if="user?.is_being_impersonated" class="bg-indigo-600 text-white px-4 py-3 flex items-center justify-center shadow-md relative z-40 animate-in slide-in-from-top-full duration-500">
+         <div class="flex items-center gap-3 text-sm font-medium">
+            <div class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </div>
+            <span>Le support est connecté sur votre compte pour analyser votre problème...</span>
+        </div>
+      </div>
+
       <UiAnnouncementBanner />
 
       <!-- Zone de contenu -->
@@ -27,16 +59,6 @@ const refreshPage = () => {
         </div>
       </main>
     </div>
-
-    <!-- Bouton Refresh (Admin uniquement) -->
-    <button 
-      v-if="user?.role === 3"
-      @click="refreshPage"
-      class="fixed bottom-24 md:bottom-8 right-8 z-50 p-3 bg-ui-surface border border-ui-border rounded-full shadow-lg hover:shadow-xl hover:bg-ui-surface-muted text-ui-content-muted hover:text-ui-content transition-all group"
-      title="Rafraîchir la page"
-    >
-      <Icon name="lucide:refresh-cw" class="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
-    </button>
 
     <!-- Navigation Mobile (Bottom Bar) -->
     <DashboardBottomNav />

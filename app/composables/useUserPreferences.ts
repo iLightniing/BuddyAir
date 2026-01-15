@@ -5,6 +5,7 @@ export const useUserPreferences = () => {
 
   const preferences = reactive({
     newsletter: user.value?.newsletter ?? false,
+    support_mode: user.value?.support_mode ?? false,
   })
 
   // Watch Newsletter (Persistance)
@@ -18,10 +19,22 @@ export const useUserPreferences = () => {
     }
   })
 
+  // Watch Support Mode
+  watch(() => preferences.support_mode, async (val, oldVal) => {
+    if (val === oldVal || !user.value) return
+    try {
+      await pb.collection('users').update(user.value.id, { support_mode: val })
+      notify(val ? 'Mode support activé' : 'Mode support désactivé', 'info')
+    } catch (e) {
+      // Échec silencieux
+    }
+  })
+
   // Synchroniser l'état local avec les données utilisateur
   watchEffect(() => {
     if (user.value) {
       preferences.newsletter = user.value.newsletter ?? false
+      preferences.support_mode = user.value.support_mode ?? false
     }
   })
 

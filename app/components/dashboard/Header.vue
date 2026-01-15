@@ -2,55 +2,24 @@
 const user = usePocketBaseUser()
 const route = useRoute()
 import { useCommandPalette } from '@/composables/useCommandPalette'
+import AdminRefreshButton from './AdminRefreshButton.vue'
+import { useSystemSettings } from '~/composables/useSystemSettings'
+import { useClock } from '~/composables/useClock'
 
 // Récupération du titre depuis la meta de la route
 const pageTitle = computed(() => route.meta.title as string || 'Tableau de bord')
 
-// Gestion de la date et de l'heure
-const currentTime = ref('')
-const currentDate = ref('')
-const isShuffling = ref(false)
-
-const updateDateTime = () => {
-  if (isShuffling.value) return
-  const now = new Date()
-  currentTime.value = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-  currentDate.value = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-}
-
-// Animation de défilement des chiffres (Shuffle)
-const shuffleTime = () => {
-  if (isShuffling.value) return
-  isShuffling.value = true
-  let iterations = 0
-  const interval = setInterval(() => {
-    const randomH = Math.floor(Math.random() * 24).toString().padStart(2, '0')
-    const randomM = Math.floor(Math.random() * 60).toString().padStart(2, '0')
-    currentTime.value = `${randomH}:${randomM}`
-    iterations++
-    if (iterations > 10) {
-      clearInterval(interval)
-      isShuffling.value = false
-      updateDateTime()
-    }
-  }, 40)
-}
-
-let timer: ReturnType<typeof setInterval> | null = null
-onMounted(() => {
-  updateDateTime()
-  timer = setInterval(updateDateTime, 1000)
-})
-
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
-})
+const { currentTime, currentDate, shuffleTime } = useClock()
 
 // Météo dynamique
 const { weather, fetchWeather } = useWeather()
 onMounted(fetchWeather)
 
 const { open } = useCommandPalette()
+
+// Maintenance
+const { settings, isMaintenanceNow } = useSystemSettings()
+const showMaintenancePreview = ref(false)
 </script>
 
 <template>
@@ -73,6 +42,23 @@ const { open } = useCommandPalette()
 
     <!-- Droite : Date, Heure & Météo -->
     <div class="flex items-center gap-6">
+      <!-- Indicateur Maintenance (Admin) -->
+      <button 
+        v-if="user?.role === 3 && settings.maintenance_active"
+        @click="showMaintenancePreview = true"
+        class="p-2 rounded-lg transition-all group relative hover:bg-ui-surface-muted"
+        :class="isMaintenanceNow ? 'text-orange-600 animate-pulse' : 'text-ui-content-muted hover:text-orange-600'"
+        title="Aperçu de la maintenance"
+      >
+        <div class="relative">
+          <Icon name="lucide:construction" class="w-4 h-4" />
+          <span v-if="isMaintenanceNow" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+        </div>
+      </button>
+
+      <!-- Bouton Refresh Admin -->
+      <AdminRefreshButton />
+
       <!-- Météo -->
       <div class="hidden sm:flex items-center gap-3 px-3 py-1 cursor-default group/weather">
         <div class="flex flex-col items-end">
@@ -96,4 +82,14 @@ const { open } = useCommandPalette()
       </div>
     </div>
   </header>
+
+  <!-- Modale Aperçu Maintenance -->
+  <UiModal :show="showMaintenancePreview" @close="showMaintenancePreview = false">
+      <div class="w-full max-w-[95vw] h-[90vh] bg-white rounded-2xl overflow-hidden relative shadow-2xl border border-ui-border">
+          <button @click="showMaintenancePreview = false" class="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-black/70 text-white backdrop-blur-md rounded-full transition-all">
+            <Icon name="lucide:x" class="w-5 h-5" />
+          </button>
+          <iframe src="/maintenance" class="w-full h-full border-none"></iframe>
+      </div>
+  </UiModal>
 </template>

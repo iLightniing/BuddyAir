@@ -9,7 +9,7 @@ definePageMeta({
 
 const {
   loading, users, showViewModal, showEditModal, showDeleteModal, selectedUser, editForm, roles,
-  fetchUsers, getRoleLabel, handleView, handleEdit, handleDelete, saveRole, confirmDelete
+  fetchUsers, getRoleLabel, handleView, handleEdit, handleDelete, saveRole, confirmDelete, impersonate
 } = useUsersManager()
 
 onMounted(fetchUsers)
@@ -175,6 +175,19 @@ const cancelDelete = () => {
              <Icon name="lucide:trash-2" class="w-4 h-4" /> Supprimer
            </button>
            <div class="flex gap-3">
+             <div class="relative group">
+                <UiButton 
+                    @click="impersonate(selectedUser)" 
+                    :disabled="!selectedUser.support_mode"
+                    variant="secondary"
+                >
+                    <Icon :name="selectedUser.support_mode ? 'lucide:venetian-mask' : 'lucide:lock'" class="w-4 h-4" />
+                </UiButton>
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">
+                    {{ selectedUser.support_mode ? `Se connecter en tant que ${selectedUser.name || 'cet utilisateur'}` : 'Mode Support désactivé par l\'utilisateur' }}
+                    <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                </div>
+             </div>
              <UiButton @click="handleEdit(selectedUser)" variant="secondary"><Icon name="lucide:shield" class="w-4 h-4 mr-2" /> Modifier rôle</UiButton>
              <UiButton @click="showViewModal = false" class="bg-slate-800 text-white hover:bg-slate-900 border-slate-900 shadow-lg shadow-slate-900/20">Fermer</UiButton>
            </div>

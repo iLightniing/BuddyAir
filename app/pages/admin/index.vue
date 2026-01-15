@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAdminDashboard } from '~/composables/useAdminDashboard'
+import AnalyticsModal from '~/components/admin/AnalyticsModal.vue'
 
 definePageMeta({
   layout: 'dashboard',
@@ -8,6 +9,15 @@ definePageMeta({
 })
 
 const { stats, loading, fetchStats } = useAdminDashboard()
+
+// Gestion de la modale Analytics
+const showAnalytics = ref(false)
+const analyticsType = ref<'users' | 'premium' | 'transactions' | null>(null)
+
+const openAnalytics = (type: 'users' | 'premium' | 'transactions') => {
+  analyticsType.value = type
+  showAnalytics.value = true
+}
 
 onMounted(fetchStats)
 </script>
@@ -18,31 +28,55 @@ onMounted(fetchStats)
     
     <!-- Zone pour les futurs widgets -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-       <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between relative overflow-hidden group animate-in zoom-in-50 duration-500 transition-all hover:scale-[1.02] hover:shadow-lg">
+       <!-- Carte Utilisateurs -->
+       <div 
+         @click="openAnalytics('users')"
+         class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between relative overflow-hidden group animate-in zoom-in-50 duration-500 transition-all hover:scale-[1.02] hover:shadow-lg cursor-pointer"
+       >
           <div class="text-center">
             <p class="text-sm font-medium text-ui-content-muted mb-1">Utilisateurs</p>
             <p class="text-3xl font-black text-ui-content">{{ loading ? '...' : stats.totalUsers }}</p>
           </div>
-          <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+          <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
              <Icon name="lucide:users" class="w-6 h-6" />
           </div>
+          <!-- Indice visuel de clic -->
+          <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-blue-500 font-bold flex items-center">
+            Détails <Icon name="lucide:arrow-right" class="w-3 h-3 ml-1" />
+          </div>
        </div>
-       <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between animate-in zoom-in-50 duration-500 delay-150 transition-all hover:scale-[1.02] hover:shadow-lg">
+
+       <!-- Carte Premium -->
+       <div 
+         @click="openAnalytics('premium')"
+         class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between animate-in zoom-in-50 duration-500 delay-150 transition-all hover:scale-[1.02] hover:shadow-lg cursor-pointer group"
+       >
           <div class="text-center">
             <p class="text-sm font-medium text-ui-content-muted mb-1">Premium</p>
             <p class="text-3xl font-black text-amber-600">{{ loading ? '...' : stats.premiumUsers }}</p>
           </div>
-          <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center">
+          <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
              <Icon name="lucide:crown" class="w-6 h-6" />
           </div>
+          <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-amber-600 font-bold flex items-center">
+            Détails <Icon name="lucide:arrow-right" class="w-3 h-3 ml-1" />
+          </div>
        </div>
-       <div class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between animate-in zoom-in-50 duration-500 delay-300 transition-all hover:scale-[1.02] hover:shadow-lg">
+
+       <!-- Carte Transactions -->
+       <div 
+         @click="openAnalytics('transactions')"
+         class="bg-ui-surface border border-ui-border rounded-xl p-6 h-32 flex items-center justify-between animate-in zoom-in-50 duration-500 delay-300 transition-all hover:scale-[1.02] hover:shadow-lg cursor-pointer group"
+       >
           <div class="text-center">
             <p class="text-sm font-medium text-ui-content-muted mb-1">Transactions</p>
             <p class="text-3xl font-black text-emerald-600">{{ loading ? '...' : stats.totalTransactions }}</p>
           </div>
-          <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center">
+          <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
              <Icon name="lucide:activity" class="w-6 h-6" />
+          </div>
+          <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-emerald-600 font-bold flex items-center">
+            Détails <Icon name="lucide:arrow-right" class="w-3 h-3 ml-1" />
           </div>
        </div>
     </div>
@@ -92,5 +126,12 @@ onMounted(fetchStats)
         </NuxtLink>
       </div>
     </div>
+
+    <!-- Modale Analytics -->
+    <AnalyticsModal 
+      :show="showAnalytics" 
+      :type="analyticsType" 
+      @close="showAnalytics = false" 
+    />
   </div>
 </template>

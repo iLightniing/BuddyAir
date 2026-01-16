@@ -1,17 +1,22 @@
 <script setup lang="ts">
+import { useSupportNotifications } from '~/composables/useSupportNotifications'
 
 const pb = usePocketBase()
 const user = usePocketBaseUser()
+const { hasUnreadSupport, hasAdminSupport, init: initNotifications } = useSupportNotifications()
+
+onMounted(initNotifications)
 
 const navItems = [
-  { icon: 'lucide:layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
-  { icon: 'lucide:wallet', label: 'Comptes', to: '/dashboard/accounts' },
-  { icon: 'lucide:pie-chart', label: 'Budget', to: '/dashboard/budget' },
-  { icon: 'lucide:rocket', label: 'Projet', to: '/dashboard/projects' },
-  { icon: 'lucide:bar-chart-3', label: 'Analyses', to: '/dashboard/stats' },
-  { icon: 'lucide:user', label: 'Profil', to: '/dashboard/profile' },
-  { icon: 'lucide:sparkles', label: 'Nouveautés', to: '/patchnotes' },
-  { icon: 'lucide:settings', label: 'Paramètres', to: '/dashboard/settings' },
+  { id: 'dashboard', icon: 'lucide:layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
+  { id: 'accounts', icon: 'lucide:wallet', label: 'Comptes', to: '/dashboard/accounts' },
+  { id: 'budget', icon: 'lucide:pie-chart', label: 'Budget', to: '/dashboard/budget' },
+  { id: 'projects', icon: 'lucide:rocket', label: 'Projet', to: '/dashboard/projects' },
+  { id: 'stats', icon: 'lucide:bar-chart-3', label: 'Analyses', to: '/dashboard/stats' },
+  { id: 'profile', icon: 'lucide:user', label: 'Profil', to: '/dashboard/profile' },
+  { id: 'patchnotes', icon: 'lucide:sparkles', label: 'Nouveautés', to: '/patchnotes' },
+  { id: 'support', icon: 'lucide:life-buoy', label: 'Support', to: '/dashboard/support' },
+  { id: 'settings', icon: 'lucide:settings', label: 'Paramètres', to: '/dashboard/settings' },
 ]
 
 const showLogoutModal = ref(false)
@@ -62,6 +67,12 @@ const confirmLogout = async () => {
       >
         <Icon :name="item.icon" class="w-6 h-6" />
         
+        <!-- Notification Badge (Support) -->
+        <span v-if="item.id === 'support' && hasUnreadSupport" class="absolute top-3 right-3 flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white"></span>
+        </span>
+        
         <!-- Tooltip -->
         <span class="absolute left-full ml-4 px-3 py-1.5 bg-ui-content text-ui-surface text-[10px] font-bold uppercase tracking-widest rounded-md opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-[100]">
           {{ item.label }}
@@ -78,6 +89,13 @@ const confirmLogout = async () => {
         class="relative group flex items-center justify-center w-12 h-12 rounded-xl text-purple-600 hover:bg-purple-50 transition-all duration-300 cursor-pointer"
       >
         <Icon name="lucide:shield-check" class="w-6 h-6" />
+        
+        <!-- Notification Badge (Admin) -->
+        <span v-if="hasAdminSupport" class="absolute top-3 right-3 flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white"></span>
+        </span>
+
         <span class="absolute left-full ml-4 px-3 py-1.5 bg-ui-content text-ui-surface text-[10px] font-bold uppercase tracking-widest rounded-md opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-[100]">
           Administration
         </span>

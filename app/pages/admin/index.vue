@@ -133,6 +133,14 @@ onMounted(fetchStats)
           <p class="text-sm text-ui-content-muted">Maintenance et configuration globale.</p>
         </NuxtLink>
 
+        <NuxtLink to="/admin/support" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-pink-300 hover:shadow-md transition-all group cursor-pointer">
+          <div class="w-12 h-12 bg-pink-50 text-pink-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Icon name="lucide:life-buoy" class="w-6 h-6" />
+          </div>
+          <h3 class="text-lg font-bold text-ui-content mb-1">Support</h3>
+          <p class="text-sm text-ui-content-muted">Gérer les tickets et demandes utilisateurs.</p>
+        </NuxtLink>
+
         <NuxtLink to="/admin/users" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all group cursor-pointer">
           <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Icon name="lucide:users" class="w-6 h-6" />

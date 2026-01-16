@@ -28,6 +28,7 @@ export const useCommandPaletteLogic = () => {
     { id: 'budget', label: 'Budget', icon: 'lucide:pie-chart', type: 'navigation', to: '/dashboard/budget' },
     { id: 'projects', label: 'Projets', icon: 'lucide:rocket', type: 'navigation', to: '/dashboard/projects' },
     { id: 'stats', label: 'Analyses', icon: 'lucide:bar-chart-3', type: 'navigation', to: '/dashboard/stats' },
+    { id: 'support', label: 'Support Client', icon: 'lucide:life-buoy', type: 'navigation', to: '/dashboard/support' },
     { id: 'profile', label: 'Mon Profil', icon: 'lucide:user', type: 'navigation', to: '/dashboard/profile' },
     { id: 'new-account', label: 'Ajouter un compte', icon: 'lucide:plus-circle', type: 'action', action: () => navigateTo('/dashboard/accounts') },
   ]

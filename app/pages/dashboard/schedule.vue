@@ -1,5 +1,8 @@
 <script setup lang="ts">
-definePageMeta({ title: 'Échéancier' })
+definePageMeta({
+  title: 'Échéancier',
+  middleware: ['premium']
+})
 
 import { useScheduleManager } from '~/composables/useScheduleManager'
 import { useScheduleActions } from '~/composables/useScheduleActions'

@@ -43,7 +43,15 @@ onMounted(fetchTickets)
 </script>
 
 <template>
-  <div class="h-[calc(100vh-140px)] flex overflow-hidden bg-ui-surface border border-ui-border rounded-2xl shadow-sm">
+  <div class="flex flex-col h-[calc(100vh-140px)] gap-4">
+    <div class="shrink-0">
+        <div class="inline-flex items-center gap-2">
+            <UiBackButton to="/admin" />
+            <NuxtLink to="/admin" class="font-bold text-sm text-ui-content-muted hover:text-blue-600 transition-colors">Retour à l'administration</NuxtLink>
+        </div>
+    </div>
+
+    <div class="flex-1 flex overflow-hidden bg-ui-surface border border-ui-border rounded-2xl shadow-sm">
     
     <!-- Colonne Gauche -->
     <div 
@@ -82,6 +90,7 @@ onMounted(fetchTickets)
                 is-admin
             />
         </Transition>
+    </div>
     </div>
 
     <!-- Modal User Details -->

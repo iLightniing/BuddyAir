@@ -26,6 +26,7 @@
     "lucide-vue-next": "^0.562.0",
     "nuxt": "^4.2.2",
     "pocketbase": "^0.26.5",
+    "stripe": "^20.1.2",
     "tailwindcss": "^4.1.18",
     "vanilla-tilt": "^1.8.1",
     "vue": "^3.5.26",
@@ -33,6 +34,7 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@iconify-json/lucide": "^1.2.83"
+    "@iconify-json/lucide": "^1.2.83",
+    "@types/node": "^25.0.9"
   }
 }

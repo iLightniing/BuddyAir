@@ -14,7 +14,6 @@ const navItems = [
   { id: 'projects', icon: 'lucide:rocket', label: 'Projet', to: '/dashboard/projects' },
   { id: 'stats', icon: 'lucide:bar-chart-3', label: 'Analyses', to: '/dashboard/stats' },
   { id: 'profile', icon: 'lucide:user', label: 'Profil', to: '/dashboard/profile' },
-  { id: 'patchnotes', icon: 'lucide:sparkles', label: 'Nouveautés', to: '/patchnotes' },
   { id: 'support', icon: 'lucide:life-buoy', label: 'Support', to: '/dashboard/support' },
   { id: 'settings', icon: 'lucide:settings', label: 'Paramètres', to: '/dashboard/settings' },
 ]

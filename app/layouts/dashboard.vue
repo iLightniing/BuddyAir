@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PremiumModal from '~/components/dashboard/PremiumModal.vue'
 const pb = usePocketBase()
 const user = usePocketBaseUser()
 
@@ -6,14 +7,24 @@ const { refreshKey } = useDashboardRefresh()
 const { isImpersonating, stopImpersonation } = useImpersonation()
 
 // Écoute temps réel pour le flag d'impersonation
-watch(() => user.value?.id, (newId, oldId) => {
-    if (oldId) pb.collection('users').unsubscribe(oldId)
-    if (newId) {
+watch(user, async (newUser, oldUser) => {
+    const newId = newUser?.id
+    const oldId = oldUser?.id
+
+    // On ignore les erreurs de désabonnement si l'utilisateur est déjà déconnecté
+    if (oldId) {
+        try { await pb.collection('users').unsubscribe(oldId) } catch (e) {}
+    }
+    
+    if (newId && pb.authStore.isValid) {
         pb.collection('users').subscribe(newId, (e) => {
              if (e.action === 'update' && user.value) {
                  // Mise à jour silencieuse des données utilisateur (dont is_being_impersonated)
                  user.value = { ...user.value, ...e.record }
              }
+        }).catch(e => {
+            // On ignore les erreurs 403 dues aux transitions d'auth (logout/login rapide)
+            if (e.status !== 403) console.warn("Erreur subscription dashboard:", e)
         })
     }
 }, { immediate: true })
@@ -65,5 +76,8 @@ watch(() => user.value?.id, (newId, oldId) => {
 
     <!-- Global Command Palette -->
     <DashboardCommandPalette />
+
+    <!-- Modale Premium Globale -->
+    <PremiumModal />
   </div>
 </template>

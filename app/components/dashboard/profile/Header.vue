@@ -42,8 +42,14 @@ const {
              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
                 <Icon name="lucide:shield-check" class="w-3 h-3 mr-1.5" /> Compte Vérifié
              </span>
-             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
+             <span v-if="user?.role === 3" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
+                <Icon name="lucide:shield-alert" class="w-3 h-3 mr-1.5" /> Administrateur
+             </span>
+             <span v-else-if="user?.role === 2" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-100">
                 <Icon name="lucide:crown" class="w-3 h-3 mr-1.5" /> Membre Premium
+             </span>
+             <span v-else class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-50 text-slate-700 border border-slate-100">
+                <Icon name="lucide:user" class="w-3 h-3 mr-1.5" /> Membre Gratuit
              </span>
           </div>
        </div>

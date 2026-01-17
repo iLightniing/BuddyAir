@@ -54,7 +54,7 @@ onMounted(scrollToBottom)
     <!-- Header Chat -->
     <div class="p-4 border-b border-ui-border flex justify-between items-center bg-white/50 backdrop-blur z-10">
         <div class="flex items-center gap-3">
-            <button @click="$emit('back')" class="md:hidden p-2 -ml-2 text-ui-content-muted"><Icon name="lucide:arrow-left" class="w-5 h-5" /></button>
+            <button @click="$emit('back')" class="p-2 -ml-2 text-ui-content-muted" :class="{ 'md:hidden': !isAdmin }"><Icon name="lucide:arrow-left" class="w-5 h-5" /></button>
             <div>
                 <h3 class="font-bold text-ui-content flex items-center gap-2">
                     {{ ticket.subject }}

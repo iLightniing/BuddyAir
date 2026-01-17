@@ -4,6 +4,7 @@ definePageMeta({
 })
 
 import { useAccounts } from '~/composables/useAccounts'
+const { isPremium, openPremiumModal } = usePremium()
 
 const {
   loading, isEditMode, isDragging,
@@ -38,8 +39,17 @@ const onDragEnd = () => { isDragging.value = false }
     <div v-show="!loading" class="space-y-6">
         <!-- Barre d'actions -->
         <div class="flex flex-row justify-end items-center gap-3">
-          <button @click="navigateTo('/dashboard/schedule')" class="inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-sm font-bold transition-all shadow-sm cursor-pointer rounded-md hover:scale-105 active:scale-95" title="Échéancier">
+          <button 
+            v-if="isPremium"
+            @click="navigateTo('/dashboard/schedule')" 
+            class="inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-sm font-bold transition-all shadow-sm cursor-pointer rounded-md hover:scale-105 active:scale-95" 
+            title="Échéancier"
+          >
             <Icon name="lucide:calendar-clock" class="w-5 h-5" />
+            <span class="hidden sm:inline">Échéancier</span>
+          </button>
+          <button v-else @click="openPremiumModal" class="inline-flex justify-center items-center gap-2 px-4 py-2.5 bg-amber-100 hover:bg-amber-200 border border-amber-200 text-amber-700 text-sm font-bold transition-all shadow-sm cursor-pointer rounded-md hover:scale-105 active:scale-95 group" title="Fonctionnalité Premium">
+            <Icon name="lucide:crown" class="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span class="hidden sm:inline">Échéancier</span>
           </button>
           <button 
@@ -69,8 +79,9 @@ const onDragEnd = () => { isDragging.value = false }
               <button @click="handleCreate('savings'); showCreateDropdown = false" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-ui-content hover:bg-ui-surface-muted rounded-lg text-left transition-colors">
                 <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><Icon name="lucide:piggy-bank" class="w-4 h-4" /></div> Épargne
               </button>
-              <button @click="handleCreate('credit'); showCreateDropdown = false" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-ui-content hover:bg-ui-surface-muted rounded-lg text-left transition-colors">
-                <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name="lucide:landmark" class="w-4 h-4" /></div> Crédit
+              <button @click="isPremium ? (handleCreate('credit'), showCreateDropdown = false) : (openPremiumModal(), showCreateDropdown = false)" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-ui-content hover:bg-ui-surface-muted rounded-lg text-left transition-colors group">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name="lucide:landmark" class="w-4 h-4" /></div> <span class="flex-1">Crédit</span>
+                <Icon v-if="!isPremium" name="lucide:lock" class="w-3 h-3 text-amber-500" />
               </button>
             </div>
           </div>

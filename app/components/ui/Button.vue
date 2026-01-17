@@ -4,7 +4,7 @@ import { NuxtLink } from '#components'
 interface Props {
   to?: string
   type?: 'button' | 'submit' | 'reset'
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'outline'
   disabled?: boolean
   loading?: boolean
 }
@@ -25,7 +25,8 @@ withDefaults(defineProps<Props>(), {
     :class="[
       { 'px-8 py-3.5 bg-ui-content text-ui-surface hover:opacity-90 shadow-sm border border-transparent': variant === 'primary' },
       { 'px-8 py-3.5 bg-ui-surface-muted text-ui-content border border-ui-border hover:bg-ui-border/50 shadow-none': variant === 'secondary' },
-      { 'px-4 py-2 bg-transparent text-ui-content hover:bg-ui-surface-muted border-transparent shadow-none': variant === 'ghost' }
+      { 'px-4 py-2 bg-transparent text-ui-content hover:bg-ui-surface-muted border-transparent shadow-none': variant === 'ghost' },
+      { 'px-8 py-3.5 bg-transparent text-ui-content border border-ui-border hover:bg-ui-surface-muted shadow-none': variant === 'outline' }
     ]"
   >
     <div class="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-shimmer pointer-events-none transition-opacity duration-300"></div>

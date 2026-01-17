@@ -7,7 +7,7 @@ const PATHS = {
   UPDATE_PASSWORD: '/auth/update-password'
 }
 
-export default defineNuxtRouteMiddleware((to) => {
+export default defineNuxtRouteMiddleware(async (to) => {
   const user = usePocketBaseUser()
 
   // On laisse la page de confirmation gérer sa propre logique de redirection complexe

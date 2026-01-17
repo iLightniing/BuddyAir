@@ -11,6 +11,7 @@ const tabs = [
   { id: 'rules', label: 'Règles', icon: 'lucide:wand-2' },
   { id: 'tags', label: 'Tags', icon: 'lucide:bookmark' },
   { id: 'data', label: 'Import & Export', icon: 'lucide:database' },
+  { id: 'patchnotes', label: 'Nouveautés', icon: 'lucide:sparkles' },
   { id: 'about', label: 'À propos', icon: 'lucide:info' }
 ]
 </script>
@@ -52,6 +53,10 @@ const tabs = [
 
           <div v-else-if="activeTab === 'data'" class="space-y-6">
              <SettingsDataExport />
+          </div>
+
+          <div v-else-if="activeTab === 'patchnotes'" class="space-y-6">
+             <SettingsPatchnotes />
           </div>
 
           <div v-else-if="activeTab === 'about'" class="space-y-6">

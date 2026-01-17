@@ -33,17 +33,30 @@ export const useSupportNotifications = () => {
     }
   }
 
-  const init = () => {
-    checkNotifications()
+  const init = async () => {
+    // Nettoyage préventif (ignorer les erreurs si déjà déconnecté)
+    if (pb.authStore.isValid) {
+        try { await pb.collection('tickets').unsubscribe('*') } catch (e) {}
+    }
+
+    if (!user.value) {
+        hasUnreadSupport.value = false
+        hasAdminSupport.value = false
+        return
+    }
+
+    await checkNotifications()
     
     // Subscribe to tickets to update notifications in realtime
     pb.collection('tickets').subscribe('*', () => {
       checkNotifications()
+    }).catch(e => {
+        if (e.status !== 403) console.warn("Erreur subscription support:", e)
     })
   }
 
   // Re-vérifier quand l'utilisateur change (ex: connexion/hydratation)
-  watch(user, checkNotifications)
+  watch(user, init)
 
   return {
     hasUnreadSupport,

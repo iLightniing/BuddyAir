@@ -23,7 +23,8 @@ export const useSupport = (isAdmin = false) => {
       const result = await pb.collection('tickets').getFullList({
         filter,
         sort: '-last_message_at,-created',
-        expand: 'user'
+        expand: 'user',
+        requestKey: null // Désactive l'auto-annulation pour éviter les conflits
       })
       tickets.value = result
     } catch (e) {
@@ -95,7 +96,7 @@ export const useSupport = (isAdmin = false) => {
     messages.value = []
     
     // On se désabonne de tout pour éviter les conflits
-    await pb.collection('ticket_messages').unsubscribe()
+    try { await pb.collection('ticket_messages').unsubscribe() } catch (e) {}
 
     try {
       const result = await pb.collection('ticket_messages').getFullList({
@@ -119,6 +120,8 @@ export const useSupport = (isAdmin = false) => {
                   }
               }
           }
+      }).catch(e => {
+          if (e.status !== 403) console.warn("Erreur subscription messages:", e)
       })
 
     } catch (e) {

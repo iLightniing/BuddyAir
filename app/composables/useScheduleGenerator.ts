@@ -8,6 +8,9 @@ export const useScheduleGenerator = () => {
     const user = pb.authStore.model
     if (!user) return
 
+    // RESTRICTION PREMIUM : L'automatisation est réservée aux rôles >= 2 (Premium & Admin)
+    if (user.role < 2) return
+
     // Fin du mois en cours
     const now = new Date()
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)

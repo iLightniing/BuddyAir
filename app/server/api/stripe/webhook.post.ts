@@ -96,6 +96,64 @@ export default defineEventHandler(async (event) => {
       console.warn('⚠️ [Webhook] Attention : Pas de userId trouvé dans la session Stripe')
     }
   }
+  
+  // GESTION DES MISES À JOUR (Annulation demandée, changement de plan, etc.)
+  else if (stripeEvent.type === 'customer.subscription.updated') {
+    console.log('🔔 [Webhook] Événement reçu : customer.subscription.updated')
+    const subscription = stripeEvent.data.object as any
+    const customerId = subscription.customer as string
+
+    try {
+      const pb = new PocketBase(process.env.POCKETBASE_URL)
+      await pb.admins.authWithPassword(
+        process.env.POCKETBASE_ADMIN_EMAIL || '',
+        process.env.POCKETBASE_ADMIN_PASSWORD || ''
+      )
+
+      // On retrouve l'utilisateur via son ID Stripe
+      const user = await pb.collection('users').getFirstListItem(`stripe_customer_id="${customerId}"`)
+      
+      if (user) {
+        // On met à jour la date de fin (qui peut changer lors d'un renouvellement ou annulation)
+        await pb.collection('users').update(user.id, {
+          subscription_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        })
+        console.log(`✅ [Webhook] Dates mises à jour pour l'utilisateur ${user.id}`)
+      }
+    } catch (error: any) {
+      console.error('❌ [Webhook] Erreur update subscription:', error.message)
+    }
+  }
+
+  // GESTION DE LA FIN D'ABONNEMENT (Expiration réelle)
+  else if (stripeEvent.type === 'customer.subscription.deleted') {
+    console.log('🔔 [Webhook] Événement reçu : customer.subscription.deleted')
+    const subscription = stripeEvent.data.object as Stripe.Subscription
+    const customerId = subscription.customer as string
+
+    try {
+      const pb = new PocketBase(process.env.POCKETBASE_URL)
+      await pb.admins.authWithPassword(
+        process.env.POCKETBASE_ADMIN_EMAIL || '',
+        process.env.POCKETBASE_ADMIN_PASSWORD || ''
+      )
+
+      const user = await pb.collection('users').getFirstListItem(`stripe_customer_id="${customerId}"`)
+      
+      if (user) {
+        // Rétrogradation immédiate en Role 1 (Free)
+        await pb.collection('users').update(user.id, {
+          role: 1,
+          stripe_subscription_id: '',
+          subscription_end: ''
+        })
+        console.log(`✅ [Webhook] Abonnement terminé. Utilisateur ${user.id} repassé en Role 1.`)
+      }
+    } catch (error: any) {
+      console.error('❌ [Webhook] Erreur delete subscription:', error.message)
+    }
+  }
 
   return { received: true }
 })

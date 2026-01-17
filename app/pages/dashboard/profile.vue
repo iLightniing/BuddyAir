@@ -37,15 +37,17 @@ const userInitials = computed(() => {
 
 const showSubModal = ref(false)
 const localSubscriptionDate = ref<string | null>(null)
+const subscriptionStatus = ref<any>(null)
 
 // Auto-correction de la date "N/A"
 onMounted(async () => {
-  // Si l'utilisateur est premium mais n'a pas de date dans la BDD, on va la chercher
-  if (isPremium.value && !user.value?.subscription_end && user.value?.stripe_customer_id) {
+  // On récupère toujours le statut Stripe pour savoir si c'est en cours d'annulation
+  if (isPremium.value && user.value?.stripe_customer_id) {
     try {
       const sub = await $fetch<any>('/api/stripe/subscription', {
         query: { customerId: user.value.stripe_customer_id }
       })
+      subscriptionStatus.value = sub
       if (sub.active && sub.current_period_end) {
         localSubscriptionDate.value = sub.current_period_end
       }
@@ -59,6 +61,53 @@ onMounted(async () => {
 const displayDate = computed(() => {
   const date = user.value?.subscription_end || user.value?.current_period_end || localSubscriptionDate.value
   return date ? new Date(date).toLocaleDateString() : 'Chargement...'
+})
+
+const cardTheme = computed(() => {
+  const role = user.value?.role
+  const isCancelled = subscriptionStatus.value?.cancel_at_period_end
+
+  // Cas 3 : Administrateur (Légendaire / Arc-en-ciel)
+  if (role === 3) {
+    return {
+      classes: 'bg-white border-purple-200 shadow-lg shadow-purple-500/10',
+      blur: 'bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500',
+      text: 'text-purple-600',
+      icon: 'lucide:shield-check',
+      label: 'Administrateur'
+    }
+  }
+  
+  // Cas 2 : Premium
+  if (role === 2) {
+    // Sous-cas : Annulation demandée (Rouge)
+    if (isCancelled) {
+      return {
+        classes: 'bg-white border-red-200',
+        blur: 'bg-red-400',
+        text: 'text-red-600',
+        icon: 'lucide:clock',
+        label: 'Premium (Fin)'
+      }
+    }
+    // Sous-cas : Actif (Vert)
+    return {
+      classes: 'bg-white border-emerald-200',
+      blur: 'bg-emerald-400',
+      text: 'text-emerald-600',
+      icon: 'lucide:crown',
+      label: 'Premium'
+    }
+  }
+
+  // Cas 1 : Gratuit (Ambre/Gold)
+  return {
+    classes: 'bg-white border-amber-200',
+    blur: 'bg-amber-400',
+    text: 'text-amber-600',
+    icon: 'lucide:sparkles',
+    label: 'Gratuit'
+  }
 })
 </script>
 
@@ -96,27 +145,27 @@ const displayDate = computed(() => {
        <div class="space-y-8">
           <!-- Carte Abonnement -->
           <div class="relative overflow-hidden rounded-2xl border transition-all"
-               :class="isPremium ? 'bg-emerald-50/50 border-emerald-100' : 'bg-amber-50/50 border-amber-100'">
+               :class="cardTheme.classes">
               
               <!-- Background Pattern -->
               <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full blur-2xl opacity-50"
-                   :class="isPremium ? 'bg-emerald-400' : 'bg-amber-400'"></div>
+                   :class="cardTheme.blur"></div>
 
               <div class="p-5 relative z-10">
                   <div class="flex justify-between items-start mb-4">
                       <div>
-                          <p class="text-[10px] font-black uppercase tracking-widest mb-1" :class="isPremium ? 'text-emerald-600' : 'text-amber-600'">Mon Abonnement</p>
+                          <p class="text-[10px] font-black uppercase tracking-widest mb-1" :class="cardTheme.text">Mon Abonnement</p>
                           <h3 class="text-xl font-black text-ui-content flex items-center gap-2">
-                              {{ isPremium ? 'Premium' : 'Gratuit' }}
-                              <Icon v-if="isPremium" name="lucide:check-circle-2" class="w-5 h-5 text-emerald-500" />
+                              {{ cardTheme.label }}
+                              <Icon v-if="user?.role === 2 && !subscriptionStatus?.cancel_at_period_end" name="lucide:check-circle-2" class="w-5 h-5 text-emerald-500" />
                           </h3>
                       </div>
-                      <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" :class="isPremium ? 'bg-white text-emerald-600' : 'bg-white text-amber-600'">
-                          <Icon name="lucide:crown" class="w-5 h-5" />
+                      <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-gray-50" :class="cardTheme.text">
+                          <Icon :name="cardTheme.icon" class="w-5 h-5" />
                       </div>
                   </div>
 
-                  <div v-if="!isPremium" class="space-y-4">
+                  <div v-if="user?.role === 1" class="space-y-4">
                       <p class="text-sm text-ui-content-muted font-medium">Débloquez les échéances automatiques et les comptes crédits.</p>
                       <button @click="openPremiumModal" class="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold rounded-md shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
                           Passer Premium
@@ -124,11 +173,23 @@ const displayDate = computed(() => {
                       </button>
                   </div>
 
-                  <div v-else>
-                      <p class="text-sm text-ui-content-muted mb-2">Renouvellement le <span class="font-bold text-ui-content">{{ displayDate }}</span></p>
-                      <button @click="showSubModal = true" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline">
+                  <div v-else-if="user?.role === 2">
+                      <p class="text-sm text-ui-content-muted mb-2">
+                        {{ subscriptionStatus?.cancel_at_period_end ? "Fin de l'abonnement le" : "Renouvellement le" }} 
+                        <span class="font-bold text-ui-content">{{ displayDate }}</span>
+                      </p>
+                      <button @click="showSubModal = true" class="text-xs font-bold hover:underline" :class="subscriptionStatus?.cancel_at_period_end ? 'text-red-600 hover:text-red-700' : 'text-emerald-600 hover:text-emerald-700'">
                         Gérer mon abonnement
                       </button>
+                  </div>
+
+                  <div v-else-if="user?.role === 3" class="space-y-4">
+                      <p class="text-sm text-ui-content-muted font-medium">Compte administrateur avec accès illimité.</p>
+                      <div class="flex gap-2">
+                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                           Super Admin
+                         </span>
+                      </div>
                   </div>
               </div>
           </div>

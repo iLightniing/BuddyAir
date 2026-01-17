@@ -31,7 +31,8 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     > 
-      <div v-if="show" class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="emit('close')">
+      <!-- PERFORMANCE: Retrait de backdrop-blur-sm pour fluidifier l'animation -->
+      <div v-if="show" class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50" @click.self="emit('close')">
         <Transition
           enter-active-class="transition-all duration-300 ease-out"
           enter-from-class="opacity-0 scale-95"

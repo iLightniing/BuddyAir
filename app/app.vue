@@ -14,12 +14,14 @@ useHead({
     <UiNotification />
 
     <!-- Background Image Layer (Immortel) -->
-    <div class="fixed inset-0 bg-app-wallpaper bg-cover bg-center blur-md scale-110 opacity-60 z-0"></div>
+    <!-- PERFORMANCE: Retrait de blur-md qui coûte cher en ressources GPU et cause des latences -->
+    <div class="fixed inset-0 bg-app-wallpaper bg-cover bg-center scale-110 opacity-60 z-0"></div>
 
     <!-- Snow Effect Layer (Immortel) -->
-    <ClientOnly>
+    <!-- PERFORMANCE: Désactivation temporaire des particules pour vérifier si elles causent le ralentissement -->
+    <!-- <ClientOnly>
       <UiParticles effect="snow" class="z-10" />
-    </ClientOnly>
+    </ClientOnly> -->
 
     <main class="relative min-h-screen z-20">
       <NuxtLayout>

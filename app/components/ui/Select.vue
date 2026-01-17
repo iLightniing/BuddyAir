@@ -65,7 +65,9 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         leave-from-class="opacity-100 scale-100 translate-y-0"
         leave-to-class="opacity-0 scale-95 -translate-y-2"
       >
-        <div v-if="isOpen" class="absolute z-50 w-full mt-2 bg-ui-surface border border-ui-border rounded-md shadow-xl overflow-hidden py-1 backdrop-blur-xl">
+        <!-- PERFORMANCE: Retrait de backdrop-blur-xl inutile car le fond est opaque (bg-ui-surface) -->
+        <!-- Ajout de will-change-transform pour forcer l'accélération GPU -->
+        <div v-if="isOpen" class="absolute z-50 w-full mt-2 bg-ui-surface border border-ui-border rounded-md shadow-xl overflow-hidden py-1 will-change-transform">
           <div class="max-h-60 overflow-y-auto scrollbar-hide">
             <button
               v-for="opt in options"

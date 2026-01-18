@@ -42,8 +42,9 @@ defineEmits(['select', 'create'])
         <template v-if="isAdmin">
             <div class="flex justify-between items-start mb-1">
                 <div class="flex items-center gap-2">
-                    <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600">
-                        {{ ticket.expand?.user?.name?.[0] || 'U' }}
+                    <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 overflow-hidden">
+                        <img v-if="ticket.expand?.user?.avatar" :src="`http://127.0.0.1:8090/api/files/users/${ticket.expand.user.id}/${ticket.expand.user.avatar}`" class="w-full h-full object-cover" />
+                        <span v-else>{{ ticket.expand?.user?.name?.[0] || 'U' }}</span>
                     </div>
                     <span class="text-xs font-bold text-ui-content truncate max-w-[100px]">{{ ticket.expand?.user?.name || ticket.expand?.user?.email }}</span>
                 </div>
@@ -65,8 +66,9 @@ defineEmits(['select', 'create'])
         <template v-else>
             <div class="flex justify-between items-start mb-1">
                 <div class="flex items-center gap-2">
-                    <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold shrink-0">
-                        {{ currentUser?.name?.[0] || currentUser?.email?.[0].toUpperCase() }}
+                    <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden">
+                        <img v-if="currentUser?.avatar" :src="`http://127.0.0.1:8090/api/files/users/${currentUser.id}/${currentUser.avatar}`" class="w-full h-full object-cover" />
+                        <span v-else>{{ currentUser?.name?.[0] || currentUser?.email?.[0].toUpperCase() }}</span>
                     </div>
                     <span class="text-xs font-bold text-ui-content truncate max-w-[120px]">{{ ticket.subject }}</span>
                 </div>

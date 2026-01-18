@@ -4,12 +4,13 @@ import DashboardWidgetsLastVisit from '~/components/dashboard/widgets/LastVisit.
 import DashboardWidgetsSituation from '~/components/dashboard/widgets/Situation.vue'
 import DashboardWidgetsRecentTransactions from '~/components/dashboard/widgets/RecentTransactions.vue'
 import DashboardWidgetsUpcomingSchedules from '~/components/dashboard/widgets/UpcomingSchedules.vue'
-import DashboardWidgetsAccountsList from '~/components/dashboard/widgets/AccountsList.vue'
+import DashboardAccountAccountsList from '~/components/dashboard/widgets/AccountsList.vue'
 import DashboardWidgetsMonthlyBudget from '~/components/dashboard/widgets/MonthlyBudget.vue'
 import DashboardWidgetsSavingsGoals from '~/components/dashboard/widgets/SavingsGoals.vue'
 import DashboardWidgetsCashFlow from '~/components/dashboard/widgets/CashFlow.vue'
-import OnboardingWidget from '~/components/dashboard/OnboardingWidget.vue'
-import WidgetStoreModal from '~/components/dashboard/WidgetStoreModal.vue'
+import OnboardingWidget from '~/components/dashboard/onboarding/OnboardingWidget.vue'
+import WidgetStoreModal from '~/components/dashboard/modals/WidgetStoreModal.vue'
+import DashboardAccountModal from '~/components/dashboard/account/Modal.vue'
 import { VueDraggable } from 'vue-draggable-plus'
 
 definePageMeta({
@@ -22,6 +23,9 @@ const {
   loading, accounts, recentTransactions, upcomingSchedules, fetchData,
   totalCurrent, totalSavings, totalCredit
 } = useDashboardData()
+
+// On force le chargement par défaut pour éviter le flash de l'onboarding
+loading.value = true
 
 // C'est ici que la magie opère : on lance le fetch à chaque fois que le composant est monté
 onMounted(() => {
@@ -38,11 +42,21 @@ watch(user, (u) => {
 })
 
 const showWidgetStore = ref(false)
+const showCreateAccountModal = ref(false)
 const widgetColumns = ref<any[]>([[], [], []]) // 3 colonnes
 
 const lastActivityDate = computed(() => user.value?.updated)
 
-const showOnboarding = computed(() => !loading.value && accounts.value.length === 0)
+const completedOnboardingSteps = computed(() => {
+  const steps: string[] = []
+  if (accounts.value.length > 0) steps.push('create-account')
+  if (recentTransactions.value.length > 0) {
+    steps.push('create-transaction')
+  }
+  return steps
+})
+
+const showOnboarding = computed(() => accounts.value.length === 0 || recentTransactions.value.length === 0)
 
 // --- Données Calculées pour les Widgets ---
 const monthlyIncome = ref(0)
@@ -82,6 +96,20 @@ const savingsGoals = computed(() => {
     }))
 })
 
+const sanitizeWidgets = () => {
+  const seen = new Set()
+  widgetColumns.value.forEach(col => {
+    for (let i = col.length - 1; i >= 0; i--) {
+      const wId = col[i]
+      if (!wId || typeof wId !== 'string' || seen.has(wId)) {
+        col.splice(i, 1)
+      } else {
+        seen.add(wId)
+      }
+    }
+  })
+}
+
 onMounted(() => {
   const saved = localStorage.getItem('buddyair_dashboard_widgets')
   if (saved) {
@@ -89,7 +117,7 @@ onMounted(() => {
       const parsed = JSON.parse(saved)
       
       // Migration : Si c'est l'ancien format (tableau plat), on distribue dans les colonnes
-      if (Array.isArray(parsed) && (parsed.length === 0 || typeof parsed[0] === 'string' || typeof parsed[0] === 'object')) {
+      if (Array.isArray(parsed) && (parsed.length === 0 || typeof parsed[0] === 'string' || (typeof parsed[0] === 'object' && !Array.isArray(parsed[0])))) {
         const flat = typeof parsed[0] === 'object' ? parsed.map((w: any) => w.id) : parsed
         // Distribution équitable
         flat.forEach((w: string, i: number) => {
@@ -102,6 +130,7 @@ onMounted(() => {
     } catch (e) {
       widgetColumns.value = [[], [], []]
     }
+    sanitizeWidgets()
   }
 })
 
@@ -129,13 +158,37 @@ const updateWidgets = (newWidgets: string[]) => {
     const shortestCol = widgetColumns.value.reduce((prev, curr) => prev.length <= curr.length ? prev : curr)
     shortestCol.push(w)
   })
+  sanitizeWidgets()
+}
+
+const fillDefaults = async () => {
+  widgetColumns.value = [[], [], []]
+  
+  const defaults = [
+    { col: 0, id: 'TotalBalance' },
+    { col: 1, id: 'RecentTransactions' },
+    { col: 2, id: 'Situation' },
+    { col: 0, id: 'MonthlyBudget' },
+    { col: 1, id: 'SavingsGoals' },
+    { col: 2, id: 'UpcomingSchedules' }
+  ]
+
+  for (const w of defaults) {
+    widgetColumns.value[w.col].push(w.id)
+    await new Promise(resolve => setTimeout(resolve, 150))
+  }
+  sanitizeWidgets()
 }
 
 const handleOnboardingAction = (action: string) => {
   if (action === 'create-transaction') {
+    if (accounts.value.length > 0) {
+      navigateTo(`/dashboard/accounts/${accounts.value[0]?.id}`)
+    } else {
+      showCreateAccountModal.value = true
+    }
   } else if (action === 'create-account') {
-    // Redirection vers la page ou modale de création de compte si elle existe
-    // navigateTo('/dashboard/accounts') 
+    showCreateAccountModal.value = true
   }
 }
 
@@ -149,35 +202,36 @@ const handleOnboardingAction = (action: string) => {
         <p class="text-ui-content-muted text-sm">Gérez vos finances efficacement.</p>
       </div>
       <div class="flex gap-3">
-        <!-- Bouton "Ajouter Widget" si aucun widget n'est configuré (et pas en mode onboarding) -->
-        <UiButton v-if="!showOnboarding && flatWidgets.length === 0" @click="showWidgetStore = true" variant="primary" class="shadow-sm animate-bounce">
+        <UiButton v-if="!showOnboarding" @click="showWidgetStore = true" variant="primary" class="shadow-sm">
           <Icon name="lucide:layout-grid" class="w-4 h-4 mr-2" />
           Ajouter Widget
         </UiButton>
-
-        <!-- Boutons normaux si des widgets sont présents -->
-        <div v-else-if="!showOnboarding" class="flex gap-2">
-           <UiButton @click="showWidgetStore = true" variant="secondary" class="px-3" title="Gérer les widgets">
-             <Icon name="lucide:layout-grid" class="w-4 h-4" />
-           </UiButton>
-        </div>
       </div>
     </div>
 
-    <div v-if="showOnboarding" class="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <OnboardingWidget @action="handleOnboardingAction" />
+    <div v-if="loading" class="flex justify-center items-center py-20">
+      <Icon name="lucide:loader-2" class="w-10 h-10 text-blue-500 animate-spin" />
+    </div>
+
+    <div v-else-if="showOnboarding" class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <OnboardingWidget :completed-steps="completedOnboardingSteps" @action="handleOnboardingAction" />
     </div>
 
     <!-- Zone "Aucun widget" -->
-    <div v-else-if="flatWidgets.length === 0" class="py-16 text-center bg-ui-surface border border-ui-border border-dashed rounded-2xl animate-in fade-in zoom-in duration-300">
+    <div v-else-if="flatWidgets.length === 0" class="py-16 text-center bg-ui-surface border border-ui-border border-dashed rounded-2xl">
        <div class="w-16 h-16 bg-ui-surface-muted rounded-full flex items-center justify-center mx-auto mb-4">
           <Icon name="lucide:layout-dashboard" class="w-8 h-8 text-ui-content-muted" />
        </div>
        <h3 class="text-lg font-bold text-ui-content mb-1">Aucun widget paramétré</h3>
        <p class="text-ui-content-muted mb-6">Personnalisez votre tableau de bord pour afficher les informations qui vous importent.</p>
-       <UiButton @click="showWidgetStore = true" variant="outline">
-          Choisir mes widgets
-       </UiButton>
+       <div class="flex flex-wrap gap-3 justify-center">
+         <UiButton @click="showWidgetStore = true" variant="outline">
+            Choisir mes widgets
+         </UiButton>
+         <UiButton @click="fillDefaults" variant="secondary">
+            Générer un tableau de bord type
+         </UiButton>
+       </div>
     </div>
 
     <!-- Colonnes de Widgets (Masonry) -->
@@ -190,11 +244,11 @@ const handleOnboardingAction = (action: string) => {
           :animation="150"
           handle=".widget-handle"
         >
-            <div v-for="widgetId in col" :key="widgetId">
+            <div v-for="widgetId in col" :key="widgetId" class="animate-in fade-in slide-in-from-bottom-8 duration-500">
                 <DashboardWidgetsTotalBalance v-if="widgetId === 'TotalBalance'" :total-current="totalCurrent" :total-savings="totalSavings" :total-credit="totalCredit" class="widget-handle cursor-move" />
                 <DashboardWidgetsLastVisit v-else-if="widgetId === 'LastVisit'" :last-activity-date="lastActivityDate" class="widget-handle cursor-move" />
                 <DashboardWidgetsSituation v-else-if="widgetId === 'Situation'" :accounts="accounts" class="widget-handle cursor-move" />
-                <DashboardWidgetsAccountsList v-else-if="widgetId === 'AccountsList'" :accounts="accounts" class="widget-handle cursor-move" />
+                <DashboardAccountAccountsList v-else-if="widgetId === 'AccountsList'" :accounts="accounts" class="widget-handle cursor-move" />
                 <DashboardWidgetsRecentTransactions v-else-if="widgetId === 'RecentTransactions'" :transactions="recentTransactions" :loading="loading" class="widget-handle cursor-move" />
                 <DashboardWidgetsUpcomingSchedules v-else-if="widgetId === 'UpcomingSchedules'" :schedules="upcomingSchedules" :loading="loading" class="widget-handle cursor-move" />
                 <DashboardWidgetsMonthlyBudget v-else-if="widgetId === 'MonthlyBudget'" :spent="monthlyExpense" :budget="2000" class="widget-handle cursor-move" />
@@ -210,6 +264,12 @@ const handleOnboardingAction = (action: string) => {
       :active-widgets="flatWidgets"
       @close="showWidgetStore = false"
       @update:widgets="updateWidgets"
+    />
+
+    <DashboardAccountModal 
+      :show="showCreateAccountModal" 
+      @close="showCreateAccountModal = false" 
+      @success="() => { showCreateAccountModal = false; fetchData(); }" 
     />
   </div>
 </template>

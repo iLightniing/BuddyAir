@@ -11,15 +11,23 @@ const { message, type, isVisible } = useNotification()
     leave-from-class="opacity-100"
     leave-to-class="opacity-0"
   >
-    <div v-if="isVisible" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] w-full max-w-md px-4">
+    <div v-if="isVisible" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex justify-center">
       <div 
-        class="bg-ui-surface border border-ui-border px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4"
+        class="px-4 py-2.5 rounded-md shadow-xl border flex items-center gap-3"
         :class="[
-          type === 'error' ? 'border-red-200 text-red-600' : 'text-ui-content'
+          type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 
+          type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+          'bg-indigo-50 border-indigo-200 text-indigo-800'
         ]"
       >
-        <Icon :name="type === 'error' ? 'lucide:alert-circle' : 'lucide:check-circle'" class="w-6 h-6 shrink-0" />
-        <p class="text-sm font-medium">{{ message }}</p>
+        <div class="p-1 rounded-full shrink-0" :class="[
+            type === 'error' ? 'bg-red-100 text-red-600' : 
+            type === 'success' ? 'bg-emerald-100 text-emerald-600' :
+            'bg-indigo-100 text-indigo-600'
+        ]">
+            <Icon :name="type === 'error' ? 'lucide:alert-circle' : (type === 'success' ? 'lucide:check-circle' : 'lucide:info')" class="w-4 h-4" />
+        </div>
+        <p class="text-sm font-bold">{{ message }}</p>
       </div>
     </div>
   </Transition>

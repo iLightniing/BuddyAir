@@ -58,8 +58,9 @@ const cancelDelete = () => {
           <tr v-for="user in users" :key="user.id" class="group hover:bg-ui-surface-muted/30 transition-colors">
             <td class="p-4">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
-                  {{ user.name?.charAt(0).toUpperCase() || 'U' }}
+                <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs overflow-hidden">
+                  <img v-if="user.avatar" :src="`http://127.0.0.1:8090/api/files/users/${user.id}/${user.avatar}`" class="w-full h-full object-cover" alt="Avatar" />
+                  <span v-else>{{ user.name?.charAt(0).toUpperCase() || 'U' }}</span>
                 </div>
                 <span class="font-bold text-ui-content text-sm">{{ user.name || 'Sans nom' }}</span>
               </div>
@@ -87,12 +88,13 @@ const cancelDelete = () => {
 
     <!-- Modal : Voir -->
     <UiModal :show="showViewModal">
-      <div class="bg-ui-surface border border-ui-border rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden">
+      <div class="bg-ui-surface border border-ui-border rounded-xl shadow-2xl max-w-2xl w-full">
         <!-- Header -->
-        <div class="bg-ui-surface-muted p-6 border-b border-ui-border flex items-start justify-between">
+        <div class="bg-ui-surface-muted p-6 border-b border-ui-border flex items-start justify-between rounded-t-xl">
            <div class="flex items-center gap-5">
-              <div class="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-2xl font-black shadow-sm border-2 border-white">
-                 {{ selectedUser?.name?.charAt(0).toUpperCase() || 'U' }}
+              <div class="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-2xl font-black shadow-sm border-2 border-white overflow-hidden">
+                 <img v-if="selectedUser?.avatar" :src="`http://127.0.0.1:8090/api/files/users/${selectedUser.id}/${selectedUser.avatar}`" class="w-full h-full object-cover" alt="Avatar" />
+                 <span v-else>{{ selectedUser?.name?.charAt(0).toUpperCase() || 'U' }}</span>
               </div>
               <div>
                  <h3 class="text-xl font-black text-ui-content">{{ selectedUser?.name || 'Utilisateur' }}</h3>
@@ -170,26 +172,47 @@ const cancelDelete = () => {
            </div>
         </div>
         
-        <div class="bg-ui-surface-muted p-4 border-t border-ui-border flex justify-between items-center">
-           <button @click="handleDelete(selectedUser)" class="text-red-600 hover:bg-red-50 px-4 py-2 rounded-md text-sm font-bold transition-colors flex items-center gap-2">
-             <Icon name="lucide:trash-2" class="w-4 h-4" /> Supprimer
-           </button>
-           <div class="flex gap-3">
-             <div class="relative group">
+        <div class="bg-ui-surface-muted p-4 border-t border-ui-border flex justify-between items-center rounded-b-xl">
+           <div class="relative group flex items-center">
+               <UiButton @click="handleDelete(selectedUser)" variant="ghost" class="h-9 w-9 p-0 text-red-600 hover:bg-red-50 hover:text-red-700">
+                 <Icon name="lucide:trash-2" class="w-5 h-5" />
+               </UiButton>
+               <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 text-xs font-bold rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-50 shadow-xl transform translate-y-1 group-hover:translate-y-0 bg-red-900 text-white">
+                   Supprimer l'utilisateur
+                   <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-red-900"></div>
+               </div>
+           </div>
+           <div class="flex items-center gap-3">
+             <div class="relative group flex items-center">
                 <UiButton 
                     @click="impersonate(selectedUser)" 
                     :disabled="!selectedUser.support_mode"
-                    variant="secondary"
+                    class="h-9 w-9 p-0 !bg-indigo-600 text-white hover:!bg-indigo-700 shadow-indigo-500/20 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all"
                 >
-                    <Icon :name="selectedUser.support_mode ? 'lucide:venetian-mask' : 'lucide:lock'" class="w-4 h-4" />
+                    <Icon :name="selectedUser.support_mode ? 'lucide:venetian-mask' : 'lucide:lock'" class="w-5 h-5" />
                 </UiButton>
-                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 text-xs font-bold rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-50 shadow-xl transform translate-y-1 group-hover:translate-y-0"
+                     :class="selectedUser.support_mode ? 'bg-indigo-900 text-white' : 'bg-red-600 text-white'">
                     {{ selectedUser.support_mode ? `Se connecter en tant que ${selectedUser.name || 'cet utilisateur'}` : 'Mode Support désactivé par l\'utilisateur' }}
-                    <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                    <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent" :class="selectedUser.support_mode ? 'border-t-indigo-900' : 'border-t-red-600'"></div>
                 </div>
              </div>
-             <UiButton @click="handleEdit(selectedUser)" variant="secondary"><Icon name="lucide:shield" class="w-4 h-4 mr-2" /> Modifier rôle</UiButton>
-             <UiButton @click="showViewModal = false" class="bg-slate-800 text-white hover:bg-slate-900 border-slate-900 shadow-lg shadow-slate-900/20">Fermer</UiButton>
+             <div class="relative group flex items-center">
+                 <UiButton @click="handleEdit(selectedUser)" class="h-9 w-9 p-0 !bg-red-600 text-white hover:!bg-red-700 shadow-red-500/20 shadow-lg"><Icon name="lucide:shield" class="w-5 h-5" /></UiButton>
+                 <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 text-xs font-bold rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-50 shadow-xl transform translate-y-1 group-hover:translate-y-0 bg-red-900 text-white">
+                     Modifier le rôle
+                     <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-red-900"></div>
+                 </div>
+             </div>
+             <div class="relative group flex items-center">
+                 <UiButton @click="showViewModal = false" class="h-9 w-9 p-0 bg-slate-800 text-white hover:bg-slate-900 border-slate-900 shadow-lg shadow-slate-900/20">
+                    <Icon name="lucide:x" class="w-5 h-5" />
+                 </UiButton>
+                 <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 text-xs font-bold rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-50 shadow-xl transform translate-y-1 group-hover:translate-y-0 bg-slate-900 text-white">
+                     Fermer
+                     <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+                 </div>
+             </div>
            </div>
         </div>
       </div>

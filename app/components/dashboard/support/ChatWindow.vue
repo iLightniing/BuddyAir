@@ -94,14 +94,32 @@ onMounted(scrollToBottom)
             class="flex gap-4 max-w-[85%]"
             :class="msg.sender === currentUser?.id ? 'self-end flex-row-reverse' : 'self-start'"
         >
-            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" :class="msg.sender === currentUser?.id ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'">
-                {{ msg.expand?.sender?.role === 3 ? 'A' : (msg.expand?.sender?.name?.[0] || '?') }}
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden" :class="msg.sender === currentUser?.id ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'">
+                <template v-if="msg.sender === currentUser?.id">
+                    <img v-if="currentUser?.avatar" :src="`http://127.0.0.1:8090/api/files/users/${currentUser.id}/${currentUser.avatar}`" class="w-full h-full object-cover" />
+                    <span v-else>{{ currentUser?.name?.[0] || currentUser?.email?.[0]?.toUpperCase() || '?' }}</span>
+                </template>
+                <template v-else>
+                    <template v-if="msg.expand?.sender">
+                        <img v-if="msg.expand.sender.avatar" :src="`http://127.0.0.1:8090/api/files/users/${msg.expand.sender.id}/${msg.expand.sender.avatar}`" class="w-full h-full object-cover" />
+                        <span v-else>{{ msg.expand.sender.role === 3 ? 'A' : (msg.expand.sender.name?.[0] || '?') }}</span>
+                    </template>
+                    <template v-else>
+                        <div v-if="!isAdmin" class="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-600"><Icon name="lucide:headset" class="w-4 h-4" /></div>
+                        <span v-else>?</span>
+                    </template>
+                </template>
             </div>
             
             <div class="space-y-1">
                 <div class="flex items-center gap-2 mb-1" :class="msg.sender === currentUser?.id ? 'justify-end' : ''">
                     <span class="text-[10px] font-bold text-ui-content-muted">
-                        {{ msg.expand?.sender?.role === 3 ? 'Support BuddyAir' : (msg.expand?.sender?.name || 'Utilisateur') }}
+                        <template v-if="msg.expand?.sender">
+                            {{ msg.expand.sender.role === 3 ? 'Support BuddyAir' : (msg.expand.sender.name || 'Utilisateur') }}
+                        </template>
+                        <template v-else>
+                            {{ !isAdmin ? 'Support BuddyAir' : 'Utilisateur' }}
+                        </template>
                     </span>
                 </div>
                 <div 

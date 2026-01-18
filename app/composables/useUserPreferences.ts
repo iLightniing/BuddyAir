@@ -10,7 +10,9 @@ export const useUserPreferences = () => {
 
   // Watch Newsletter (Persistance)
   watch(() => preferences.newsletter, async (val, oldVal) => {
-    if (val === oldVal || !user.value) return
+    // On ignore si c'est un changement dû au chargement initial ou changement d'user
+    if (val === oldVal || !user.value || user.value.newsletter === val) return
+    
     try {
       await pb.collection('users').update(user.value.id, { newsletter: val })
       notify('Préférences de newsletter mises à jour.', 'success')
@@ -21,7 +23,9 @@ export const useUserPreferences = () => {
 
   // Watch Support Mode
   watch(() => preferences.support_mode, async (val, oldVal) => {
-    if (val === oldVal || !user.value) return
+    // On ignore si c'est un changement dû au chargement initial ou changement d'user
+    if (val === oldVal || !user.value || user.value.support_mode === val || (user.value as any).is_being_impersonated) return
+
     try {
       await pb.collection('users').update(user.value.id, { support_mode: val })
       notify(val ? 'Mode support activé' : 'Mode support désactivé', 'info')

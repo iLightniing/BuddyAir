@@ -45,7 +45,7 @@ watch(user, async (newUser, oldUser) => {
       <div v-if="isImpersonating" class="bg-indigo-600 text-white px-4 py-2 flex items-center justify-between shadow-md relative z-50">
         <div class="flex items-center gap-2 text-sm font-medium">
             <Icon name="lucide:venetian-mask" class="w-4 h-4" />
-            <span>Vous êtes connecté en tant qu'utilisateur.</span>
+            <span>Vous êtes connecté en tant que {{ user?.name || user?.email || 'Utilisateur' }}.</span>
         </div>
         <button @click="stopImpersonation" class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-bold transition-colors border border-white/30">Revenir Admin</button>
       </div>

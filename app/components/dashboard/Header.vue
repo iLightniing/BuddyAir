@@ -2,7 +2,7 @@
 const user = usePocketBaseUser()
 const route = useRoute()
 import { useCommandPalette } from '@/composables/useCommandPalette'
-import AdminRefreshButton from './AdminRefreshButton.vue'
+import AdminRefreshButton from '../admin/RefreshButton.vue'
 import { useSystemSettings } from '~/composables/useSystemSettings'
 import { useClock } from '~/composables/useClock'
 

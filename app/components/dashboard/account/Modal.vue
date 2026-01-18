@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAccountForm } from '~/composables/useAccountForm'
-import AccountFormCreditWizard from './AccountFormCreditWizard.vue'
-import AccountFormStandard from './AccountFormStandard.vue'
+import AccountFormCreditWizard from './FormCreditWizard.vue'
+import AccountFormStandard from './FormStandard.vue'
 
 const props = defineProps<{ show: boolean, account?: any, initialGroup?: string }>()
 const emit = defineEmits(['close', 'success'])

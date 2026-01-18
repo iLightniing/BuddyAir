@@ -6,17 +6,22 @@ export const usePremium = () => {
   const isPremium = computed(() => {
     if (!user.value) return false
     
+    const role = Number(user.value.role)
+
     // 1. Si Admin (Role 3), toujours Premium
-    if (user.value.role === 3) return true
+    if (role === 3) return true
 
     // 2. Si Role < 2, pas Premium
-    if (user.value.role < 2) return false
+    if (role < 2) return false
 
     // 3. Si Role 2 (Premium), on vérifie la date d'expiration
     // Cela permet de gérer le cas où le webhook de downgrade n'est pas encore passé
     if (user.value.current_period_end) {
         const endDate = new Date(user.value.current_period_end)
         const now = new Date()
+        
+        // Sécurité : Si la date est invalide, on laisse le bénéfice du doute (Premium)
+        if (isNaN(endDate.getTime())) return true
         
         // Si la date est passée, on considère qu'il n'est plus premium visuellement
         // même si la base de données dit encore "role: 2"

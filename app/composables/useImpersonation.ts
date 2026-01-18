@@ -8,21 +8,55 @@ export const useImpersonation = () => {
   // On stocke l'admin d'origine dans un état global persistant (pour survivre à la navigation)
   const originalAdmin = useState<any>('original_admin_user', () => null)
   const isImpersonating = useState<boolean>('is_impersonating', () => false)
+  const isInitialized = useState<boolean>('impersonation_initialized', () => false)
 
   // Restauration de l'état au montage (si on rafraîchit la page)
-  if (import.meta.client) {
+  if (import.meta.client && !isInitialized.value) {
+    isInitialized.value = true
     const stored = localStorage.getItem('buddyair_impersonated_user')
-    if (stored) {
-      isImpersonating.value = true
-      if (!originalAdmin.value) {
-        const adminStored = localStorage.getItem('buddyair_original_admin')
-        if (adminStored) originalAdmin.value = JSON.parse(adminStored)
+    
+    // Nettoyage si la session n'est plus valide
+    if (!pb.authStore.isValid) {
+        isImpersonating.value = false
+        originalAdmin.value = null
+        localStorage.removeItem('buddyair_impersonated_user')
+        localStorage.removeItem('buddyair_original_admin')
+    }
+    else if (stored) {
+      try {
+          const storedUser = JSON.parse(stored)
+          // Vérification : L'utilisateur connecté doit correspondre à celui stocké
+          if (pb.authStore.model?.id === storedUser.id) {
+              isImpersonating.value = true
+              if (!originalAdmin.value) {
+                const adminStored = localStorage.getItem('buddyair_original_admin')
+                if (adminStored) {
+                    try {
+                        originalAdmin.value = JSON.parse(adminStored)
+                    } catch (e) {}
+                }
+              }
+          } else {
+              // Incohérence détectée (ex: relogin sans stopImpersonation)
+              isImpersonating.value = false
+              localStorage.removeItem('buddyair_impersonated_user')
+              localStorage.removeItem('buddyair_original_admin')
+          }
+      } catch (e) {
+          isImpersonating.value = false
+          localStorage.removeItem('buddyair_impersonated_user')
       }
     }
   }
 
   const startImpersonation = async (targetUser: any) => {
     if (!targetUser) return
+
+    // Sécurité : Vérifier qu'on est bien connecté avant de commencer
+    if (!pb.authStore.isValid || !pb.authStore.model) {
+        notify("Session invalide. Veuillez vous reconnecter.", "error")
+        return
+    }
 
     // Calcul explicite du nom d'affichage avant toute transformation
     const displayName = targetUser.name || targetUser.username || targetUser.email?.split('@')[0] || 'Utilisateur'
@@ -42,8 +76,14 @@ export const useImpersonation = () => {
     }
 
     // 2. Sauvegarde de l'admin actuel
-    if (!originalAdmin.value) {
+    // On ne sauvegarde que si on n'est pas DÉJÀ en train d'impersonner (pour ne pas écraser l'admin avec un user)
+    if (!originalAdmin.value && !isImpersonating.value) {
         originalAdmin.value = pb.authStore.model ? JSON.parse(JSON.stringify(pb.authStore.model)) : null
+    }
+
+    if (!originalAdmin.value) {
+        notify("Impossible de sauvegarder la session administrateur.", "error")
+        return
     }
 
     // 3. Persistance dans localStorage (pour survivre au refresh/navigation)
@@ -76,7 +116,11 @@ export const useImpersonation = () => {
     // Tentative de récupération depuis le storage si le state est perdu
     if (!adminModel && import.meta.client) {
         const stored = localStorage.getItem('buddyair_original_admin')
-        if (stored) adminModel = JSON.parse(stored)
+        if (stored) {
+            try {
+                adminModel = JSON.parse(stored)
+            } catch (e) {}
+        }
     }
 
     if (!adminModel) {
@@ -93,6 +137,10 @@ export const useImpersonation = () => {
     const targetUserId = user.value?.id
 
     // Restauration de l'admin
+    if (adminModel) {
+        // On s'assure que l'objet admin restauré n'a pas le flag (nettoyage préventif)
+        adminModel.is_being_impersonated = false
+    }
     pb.authStore.save(pb.authStore.token, adminModel)
     user.value = adminModel
     
@@ -106,7 +154,7 @@ export const useImpersonation = () => {
     }
 
     // Retirer le flag dans la BDD
-    if (targetUserId && targetUserId !== adminModel.id) {
+    if (targetUserId) {
         try {
             await pb.collection('users').update(targetUserId, { is_being_impersonated: false })
         } catch (e) {
@@ -115,7 +163,7 @@ export const useImpersonation = () => {
     }
 
     notify("Retour au compte administrateur", "info")
-    if (import.meta.client) window.location.href = '/admin/users'
+    await navigateTo('/admin/users')
   }
 
   return {

@@ -6,6 +6,17 @@ const user = usePocketBaseUser()
 const { refreshKey } = useDashboardRefresh()
 const { isImpersonating, stopImpersonation } = useImpersonation()
 
+const forceClearImpersonation = async () => {
+    if (user.value) {
+        try {
+            // Force le nettoyage du flag en BDD
+            await pb.collection('users').update(user.value.id, { is_being_impersonated: false })
+            // Mise à jour locale immédiate
+            user.value = { ...user.value, is_being_impersonated: false }
+        } catch (e) {}
+    }
+}
+
 // Écoute temps réel pour le flag d'impersonation
 watch(user, async (newUser, oldUser) => {
     const newId = newUser?.id
@@ -26,6 +37,11 @@ watch(user, async (newUser, oldUser) => {
             // On ignore les erreurs 403 dues aux transitions d'auth (logout/login rapide)
             if (e.status !== 403) console.warn("Erreur subscription dashboard:", e)
         })
+    }
+
+    // Auto-fix : Si on est Admin et qu'on a le flag "support" coincé sans être en mode impersonation
+    if (newUser?.role === 3 && newUser?.is_being_impersonated && !isImpersonating.value) {
+        await forceClearImpersonation()
     }
 }, { immediate: true })
 </script>
@@ -51,7 +67,7 @@ watch(user, async (newUser, oldUser) => {
       </div>
 
       <!-- Bandeau Mode Support (Visible par l'utilisateur uniquement) -->
-      <div v-else-if="user?.is_being_impersonated" class="bg-indigo-600 text-white px-4 py-3 flex items-center justify-center shadow-md relative z-40 animate-in slide-in-from-top-full duration-500">
+      <div v-else-if="user?.is_being_impersonated" class="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between shadow-md relative z-40 animate-in slide-in-from-top-full duration-500">
          <div class="flex items-center gap-3 text-sm font-medium">
             <div class="relative flex h-3 w-3">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
@@ -59,6 +75,9 @@ watch(user, async (newUser, oldUser) => {
             </div>
             <span>Le support est connecté sur votre compte pour analyser votre problème...</span>
         </div>
+        <button @click="forceClearImpersonation" class="ml-4 p-1 hover:bg-white/20 rounded-full transition-colors" title="Fermer la session de support">
+            <Icon name="lucide:x" class="w-4 h-4" />
+        </button>
       </div>
 
       <UiAnnouncementBanner />

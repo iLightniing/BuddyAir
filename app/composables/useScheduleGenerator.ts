@@ -1,15 +1,18 @@
 import { getNextOccurrences } from '~/utils/schedule'
+import { usePremium } from '~/composables/usePremium'
 
 export const useScheduleGenerator = () => {
   const pb = usePocketBase()
   const { notify } = useNotification()
+  const { isPremium } = usePremium()
 
   const checkAndGenerate = async () => {
     const user = pb.authStore.model
     if (!user) return
 
     // RESTRICTION PREMIUM : L'automatisation est réservée aux rôles >= 2 (Premium & Admin)
-    if (user.role < 2) return
+    // On utilise le composable pour inclure la vérification de la date d'expiration
+    if (!isPremium.value) return
 
     // Fin du mois en cours
     const now = new Date()

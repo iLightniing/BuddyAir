@@ -7,6 +7,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   srcDir: 'app/',
   serverDir: 'app/server',
+  runtimeConfig: {
+    public: {
+      stripeKey: process.env.NUXT_PUBLIC_STRIPE_KEY || '',
+    }
+  },
   app: {
     pageTransition: {
       name: 'page',

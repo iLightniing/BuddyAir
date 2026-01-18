@@ -39,8 +39,7 @@ const showSubModal = ref(false)
 const localSubscriptionDate = ref<string | null>(null)
 const subscriptionStatus = ref<any>(null)
 
-// Auto-correction de la date "N/A"
-onMounted(async () => {
+const fetchSubscriptionStatus = async () => {
   // On récupère toujours le statut Stripe pour savoir si c'est en cours d'annulation
   if (isPremium.value && user.value?.stripe_customer_id) {
     try {
@@ -55,7 +54,10 @@ onMounted(async () => {
       // Silencieux
     }
   }
-})
+}
+
+// Auto-correction de la date "N/A" au chargement
+onMounted(fetchSubscriptionStatus)
 
 // Date affichée : soit celle de la BDD, soit celle récupérée à la volée
 const displayDate = computed(() => {
@@ -112,7 +114,7 @@ const cardTheme = computed(() => {
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto space-y-8">
+  <div v-if="user" class="max-w-5xl mx-auto space-y-8">
     <DashboardProfileHeader 
       :user="user" 
       :loading="loading" 
@@ -222,6 +224,10 @@ const cardTheme = computed(() => {
       :show="showSubModal"
       :user="user"
       @close="showSubModal = false"
+      @updated="fetchSubscriptionStatus"
     />
+  </div>
+  <div v-else class="flex justify-center items-center min-h-[50vh]">
+      <Icon name="lucide:loader-2" class="w-8 h-8 animate-spin text-ui-content-muted" />
   </div>
 </template>

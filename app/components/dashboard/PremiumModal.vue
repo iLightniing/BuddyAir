@@ -3,24 +3,54 @@
 const { showPremiumModal } = usePremium()
 const user = usePocketBaseUser()
 const route = useRoute()
+const config = useRuntimeConfig()
 const { notify } = useNotification()
 const loading = ref(false)
 const selectedPlan = ref<'monthly' | 'yearly'>('yearly') // Annuel par défaut (Upsell)
+const showEmbeddedCheckout = ref(false)
+
+// Chargeur dynamique du SDK Stripe (évite d'installer @stripe/stripe-js)
+const loadStripeSdk = () => {
+    return new Promise((resolve) => {
+        if ((window as any).Stripe) return resolve((window as any).Stripe)
+        const script = document.createElement('script')
+        script.src = 'https://js.stripe.com/v3/'
+        script.onload = () => resolve((window as any).Stripe)
+        document.head.appendChild(script)
+    })
+}
 
 const handleSubscribe = async () => {
   if (!user.value) return
   loading.value = true
   try {
-    const response = await $fetch<{ url: string }>('/api/stripe/checkout', {
+    // On demande une session "embedded"
+    const response = await $fetch<{ url: string, clientSecret: string }>('/api/stripe/checkout', {
       method: 'POST',
       body: {
         userId: user.value.id,
         email: user.value.email,
         plan: selectedPlan.value,
-        returnUrl: route.fullPath
+        returnUrl: route.fullPath,
+        embedded: true // Active le mode intégré
       }
     })
-    if (response.url) {
+
+    if (response.clientSecret && config.public.stripeKey) {
+      // Mode Intégré
+      showEmbeddedCheckout.value = true
+      const StripeConstructor: any = await loadStripeSdk()
+      const stripe = StripeConstructor(config.public.stripeKey)
+      
+      // Initialisation du checkout intégré
+      const checkout = await stripe.initEmbeddedCheckout({
+        clientSecret: response.clientSecret,
+      })
+      
+      // Montage dans la div #checkout-element
+      checkout.mount('#checkout-element')
+    } else if (response.url) {
+      // Fallback redirection si pas de clé publique ou erreur
       navigateTo(response.url, { external: true })
     }
   } catch (e: any) {
@@ -34,7 +64,13 @@ const handleSubscribe = async () => {
 
 <template>
   <UiModal :show="showPremiumModal" @close="showPremiumModal = false">
-    <div class="bg-ui-surface border border-ui-border p-6 rounded-2xl shadow-2xl max-w-md w-full text-center">
+    <div class="bg-ui-surface border border-ui-border p-6 rounded-2xl shadow-2xl max-w-md w-full text-center transition-all duration-500 max-h-[90vh] overflow-y-auto" :class="showEmbeddedCheckout ? 'max-w-2xl' : 'max-w-md'">
+      
+      <!-- Zone Checkout Intégré -->
+      <div v-if="showEmbeddedCheckout" id="checkout-element" class="min-h-[400px]"></div>
+
+      <!-- Contenu Marketing (Masqué si checkout actif) -->
+      <div v-else>
       <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
         <Icon name="lucide:crown" class="w-8 h-8" />
       </div>
@@ -86,6 +122,7 @@ const handleSubscribe = async () => {
         {{ selectedPlan === 'yearly' ? 'S\'abonner (20€/an)' : 'S\'abonner (2€/mois)' }}
       </UiButton>
       <button @click="showPremiumModal = false" class="mt-4 text-xs text-ui-content-muted hover:text-ui-content hover:underline transition-colors">Non merci, je reste en gratuit</button>
+      </div>
     </div>
   </UiModal>
 </template>

@@ -16,16 +16,17 @@ export default defineEventHandler(async (event) => {
     // On récupère l'abonnement actif
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId as string,
-      status: 'active',
-      limit: 1,
+      status: 'all', // On récupère tout pour filtrer nous-même (active ou trialing)
+      limit: 10,
       expand: ['data.plan.product'] // Pour avoir le nom du produit
     })
 
-    if (subscriptions.data.length === 0) {
+    // On cherche un abonnement valide (Actif ou en Essai/Extension)
+    const sub = subscriptions.data.find((s: any) => s.status === 'active' || s.status === 'trialing') as any
+
+    if (!sub) {
       return { active: false }
     }
-
-    const sub = subscriptions.data[0] as any
     
     return {
       active: true,

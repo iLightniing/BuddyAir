@@ -7,22 +7,98 @@ definePageMeta({
   middleware: ['admin']
 })
 
+const { notify } = useNotification()
 const {
   loading, users, showViewModal, showEditModal, showDeleteModal, selectedUser, editForm, roles,
-  fetchUsers, getRoleLabel, handleView, handleEdit, handleDelete, saveRole, confirmDelete, impersonate
+  fetchUsers, getRoleLabel, handleView, handleEdit, handleDelete, confirmDelete, impersonate
 } = useUsersManager()
 
 onMounted(fetchUsers)
+
+const extensionDate = ref<Date | null>(null)
+const isSaving = ref(false)
+
+// Initialiser la date quand on ouvre la modale ou change le rôle
+watch(() => [showEditModal.value, editForm.value.role], ([isOpen, role]) => {
+  if (isOpen && role === 2 && selectedUser.value) {
+    // Si déjà une date de fin, on la reprend, sinon on met +1 mois par défaut
+    const currentEnd = selectedUser.value.current_period_end ? new Date(selectedUser.value.current_period_end) : new Date()
+    if (isNaN(currentEnd.getTime()) || currentEnd < new Date()) {
+        const nextMonth = new Date()
+        nextMonth.setMonth(nextMonth.getMonth() + 1)
+        extensionDate.value = nextMonth
+    } else {
+        extensionDate.value = currentEnd
+    }
+  }
+}, { immediate: true })
 
 const cancelEditRole = () => {
   showEditModal.value = false
   showViewModal.value = true
 }
 
+const customSaveRole = async () => {
+  if (!selectedUser.value) return
+  isSaving.value = true
+  try {
+    await $fetch('/api/admin/users/update', {
+      method: 'POST',
+      body: {
+        id: selectedUser.value.id,
+        role: editForm.value.role,
+        extensionDate: editForm.value.role === 2 ? extensionDate.value : null
+      }
+    })
+    notify('Utilisateur mis à jour avec succès', 'success')
+    showEditModal.value = false
+    fetchUsers()
+  } catch (e) {
+    notify('Erreur lors de la mise à jour', 'error')
+  } finally {
+    isSaving.value = false
+  }
+}
+
 const cancelDelete = () => {
   showDeleteModal.value = false
   showViewModal.value = true
 }
+
+// Helper pour le format datetime-local (YYYY-MM-DDTHH:mm) en heure locale
+const toDatetimeLocal = (date: Date | null) => {
+  if (!date) return ''
+  const offset = date.getTimezoneOffset() * 60000
+  const localDate = new Date(date.getTime() - offset)
+  return localDate.toISOString().slice(0, 16)
+}
+
+// Helper pour ajouter des mois rapidement
+const addMonths = (count: number) => {
+  if (!extensionDate.value) extensionDate.value = new Date()
+  const d = new Date(extensionDate.value)
+  d.setMonth(d.getMonth() + count)
+  extensionDate.value = d
+}
+
+const subscriptionDetails = ref<any>(null)
+const isLoadingSub = ref(false)
+
+watch(selectedUser, async (newUser) => {
+  subscriptionDetails.value = null
+  if (newUser && newUser.role === 2 && newUser.stripe_customer_id) {
+    isLoadingSub.value = true
+    try {
+      subscriptionDetails.value = await $fetch('/api/stripe/subscription', {
+        query: { customerId: newUser.stripe_customer_id }
+      })
+    } catch (e) {
+      console.error("Erreur fetch sub admin", e)
+    } finally {
+      isLoadingSub.value = false
+    }
+  }
+})
 </script>
 
 <template>
@@ -99,7 +175,7 @@ const cancelDelete = () => {
               <div>
                  <h3 class="text-xl font-black text-ui-content">{{ selectedUser?.name || 'Utilisateur' }}</h3>
                  <p class="text-sm text-ui-content-muted font-medium">{{ selectedUser?.email }}</p>
-                 <div class="mt-2 flex gap-2">
+                 <div class="mt-2 flex gap-2 flex-wrap">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border" :class="selectedUser ? getRoleLabel(selectedUser.role).class.replace('bg-', 'bg-opacity-10 border-').replace('text-', 'text-') : ''">
                        {{ selectedUser ? getRoleLabel(selectedUser.role).label : '' }}
                     </span>
@@ -109,6 +185,22 @@ const cancelDelete = () => {
                     <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-50 text-gray-600 border border-gray-200">
                        Non vérifié
                     </span>
+
+                    <!-- Info Abonnement (Header) -->
+                    <template v-if="selectedUser?.role === 2">
+                        <span v-if="isLoadingSub" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-50 text-gray-500 border border-gray-200">
+                            <Icon name="lucide:loader-2" class="w-3 h-3 mr-1 animate-spin" /> ...
+                        </span>
+                        <span v-else-if="subscriptionDetails && subscriptionDetails.active" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border"
+                            :class="subscriptionDetails.cancel_at_period_end ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'">
+                            <Icon :name="subscriptionDetails.cancel_at_period_end ? 'lucide:clock' : 'lucide:refresh-cw'" class="w-3 h-3 mr-1" />
+                            {{ subscriptionDetails.cancel_at_period_end ? 'Fin : ' : 'Renouvellement : ' }} {{ new Date(subscriptionDetails.current_period_end).toLocaleDateString('fr-FR') }}
+                        </span>
+                        <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            <Icon name="lucide:calendar" class="w-3 h-3 mr-1" />
+                            Fin : {{ selectedUser.current_period_end ? new Date(selectedUser.current_period_end).toLocaleDateString('fr-FR') : 'N/A' }}
+                        </span>
+                    </template>
                  </div>
               </div>
            </div>
@@ -222,7 +314,7 @@ const cancelDelete = () => {
     <UiModal :show="showEditModal">
       <div class="bg-ui-surface border border-ui-border p-6 rounded-xl shadow-2xl max-w-sm w-full">
         <h3 class="text-xl font-black text-ui-content mb-6">Modifier le rôle</h3>
-        <form @submit.prevent="saveRole" class="space-y-6">
+        <form @submit.prevent="customSaveRole" class="space-y-6">
           <div class="space-y-2">
             <label class="text-xs font-bold text-ui-content-muted uppercase">Rôle attribué</label>
             <div class="space-y-2">
@@ -232,9 +324,32 @@ const cancelDelete = () => {
               </label>
             </div>
           </div>
+
+          <!-- Extension d'abonnement (Visible uniquement si Premium sélectionné) -->
+          <div v-if="editForm.role === 2" class="space-y-2 animate-in slide-in-from-top-2">
+             <label class="text-xs font-bold text-ui-content-muted uppercase">Fin de l'abonnement / Prochain prélèvement</label>
+             <div class="relative">
+                 <Icon name="lucide:calendar-clock" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ui-content-muted pointer-events-none" />
+                 <input 
+                    type="datetime-local" 
+                    :value="toDatetimeLocal(extensionDate)"
+                    @input="(e: any) => extensionDate = e.target.value ? new Date(e.target.value) : null"
+                    class="w-full pl-10 pr-4 py-2.5 border border-ui-border rounded-lg bg-ui-surface text-ui-content text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all [color-scheme:light] dark:[color-scheme:dark]"
+                 />
+             </div>
+             <div class="flex gap-2">
+                <button type="button" @click="addMonths(1)" class="flex-1 px-2 py-1.5 text-xs font-bold bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors border border-blue-100">+1 Mois</button>
+                <button type="button" @click="addMonths(3)" class="flex-1 px-2 py-1.5 text-xs font-bold bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors border border-blue-100">+3 Mois</button>
+                <button type="button" @click="addMonths(6)" class="flex-1 px-2 py-1.5 text-xs font-bold bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors border border-blue-100">+6 Mois</button>
+             </div>
+             <p class="text-[10px] text-ui-content-muted leading-tight mt-1">
+                Si l'utilisateur a un abonnement Stripe actif, le prochain prélèvement sera repoussé à cette date (période offerte).
+             </p>
+          </div>
+
           <div class="flex gap-3">
             <UiButton type="button" @click="cancelEditRole" variant="secondary" class="flex-1">Annuler</UiButton>
-            <UiButton type="submit" class="flex-1">Enregistrer</UiButton>
+            <UiButton type="submit" class="flex-1" :loading="isSaving">Enregistrer</UiButton>
           </div>
         </form>
       </div>

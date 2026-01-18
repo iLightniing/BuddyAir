@@ -111,7 +111,20 @@ export default defineEventHandler(async (event) => {
       )
 
       // On retrouve l'utilisateur via son ID Stripe
-      const user = await pb.collection('users').getFirstListItem(`stripe_customer_id="${customerId}"`)
+      let user;
+      try {
+        user = await pb.collection('users').getFirstListItem(`stripe_customer_id="${customerId}"`)
+      } catch (e) {
+        // Fallback : Si l'ID client n'est pas encore lié (race condition), on cherche par email
+        try {
+            const customer = await stripe.customers.retrieve(customerId) as any
+            if (customer.email) {
+                user = await pb.collection('users').getFirstListItem(`email="${customer.email}"`)
+                // On en profite pour lier le compte maintenant pour éviter les futures erreurs
+                if (user) await pb.collection('users').update(user.id, { stripe_customer_id: customerId })
+            }
+        } catch (e2) {}
+      }
       
       if (user) {
         // On met à jour la date de fin (qui peut changer lors d'un renouvellement ou annulation)

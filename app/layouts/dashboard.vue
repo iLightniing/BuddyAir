@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import PremiumModal from '~/components/dashboard/PremiumModal.vue'
+import PaymentSuccessModal from '~/components/dashboard/PaymentSuccessModal.vue'
 const pb = usePocketBase()
 const user = usePocketBaseUser()
 
 const { refreshKey } = useDashboardRefresh()
 const { isImpersonating, stopImpersonation } = useImpersonation()
+const { notify } = useNotification()
+const route = useRoute()
+const router = useRouter()
 
 const forceClearImpersonation = async () => {
     if (user.value) {
@@ -44,6 +48,56 @@ watch(user, async (newUser, oldUser) => {
         await forceClearImpersonation()
     }
 }, { immediate: true })
+
+const showSuccessModal = ref(false)
+
+// Rafraîchir les données utilisateur au chargement pour récupérer les mises à jour (ex: retour de paiement Stripe)
+onMounted(async () => {
+    if (user.value && pb.authStore.isValid) {
+        const refreshUser = async () => {
+            try {
+                const freshUser = await pb.collection('users').getOne(user.value.id)
+                // Si le rôle a changé ou si l'utilisateur a été mis à jour récemment
+                if (freshUser.role !== user.value.role || freshUser.updated !== user.value.updated) {
+                    pb.authStore.save(pb.authStore.token, freshUser)
+                    user.value = freshUser
+                    return true // Changement détecté
+                }
+            } catch (e) {
+                console.error("Erreur refresh user:", e)
+            }
+            return false
+        }
+
+        // 1. Vérification immédiate
+        await refreshUser()
+
+        // 2. Si l'utilisateur est toujours gratuit (Role 1), on insiste pendant quelques secondes
+        // C'est crucial pour le retour de Stripe où le Webhook peut avoir 1 à 3 secondes de retard
+        if (user.value.role === 1) {
+            let attempts = 0
+            const interval = setInterval(async () => {
+                attempts++
+                const changed = await refreshUser()
+                
+                // Arrêt si : changement détecté OU 4 essais passés (8s) OU utilisateur devenu Premium
+                if (changed || attempts >= 4 || user.value.role !== 1) {
+                    clearInterval(interval)
+                    if (changed) notify("Abonnement activé avec succès !", "success")
+                }
+            }, 2000) // Vérifie toutes les 2 secondes
+        }
+    }
+
+    // Détection du retour de paiement réussi
+    if (route.query.checkout_success) {
+        showSuccessModal.value = true
+        // Nettoyage de l'URL sans recharger la page
+        const newQuery = { ...route.query }
+        delete newQuery.checkout_success
+        router.replace({ query: newQuery })
+    }
+})
 </script>
 
 <template>
@@ -98,5 +152,8 @@ watch(user, async (newUser, oldUser) => {
 
     <!-- Modale Premium Globale -->
     <PremiumModal />
+    
+    <!-- Modale Succès Paiement -->
+    <PaymentSuccessModal :show="showSuccessModal" @close="showSuccessModal = false" />
   </div>
 </template>

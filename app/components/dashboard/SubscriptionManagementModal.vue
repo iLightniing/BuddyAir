@@ -5,12 +5,13 @@ const props = defineProps<{
   user: any
 }>()
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'updated'])
 const { notify } = useNotification()
 
 const loading = ref(true)
 const subscription = ref<any>(null)
 const loadingPortal = ref(false)
+const showCancelConfirm = ref(false)
 
 // Récupérer les infos dès l'ouverture
 watch(() => props.show, async (newVal) => {
@@ -27,6 +28,23 @@ watch(() => props.show, async (newVal) => {
     }
   }
 })
+
+const cancelSubscription = async () => {
+    loadingPortal.value = true
+    try {
+        await $fetch('/api/stripe/cancel', {
+            method: 'POST',
+            body: { subscriptionId: subscription.value?.id }
+        })
+        notify("Abonnement résilié. Il restera actif jusqu'à la fin de la période.", "success")
+        emit('updated')
+        emit('close')
+    } catch (e) {
+        notify("Erreur lors de la résiliation.", "error")
+    } finally {
+        loadingPortal.value = false
+    }
+}
 
 // Redirection vers le portail Stripe pour les actions complexes
 const openStripePortal = async (flow?: 'payment_method_update' | 'subscription_cancel') => {
@@ -76,7 +94,7 @@ const formatPrice = (amount: number, currency: string) => {
       </div>
 
       <!-- Détails -->
-      <div v-else-if="subscription && subscription.active" class="space-y-6">
+      <div v-else-if="subscription && (subscription.status === 'active' || subscription.status === 'trialing')" class="space-y-6">
         
         <!-- Badge Statut -->
         <div class="flex items-center gap-3 p-4 border rounded-xl transition-colors"
@@ -110,8 +128,25 @@ const formatPrice = (amount: number, currency: string) => {
           </div>
         </div>
 
+        <!-- Confirmation Annulation -->
+        <div v-if="showCancelConfirm" class="bg-red-50 border border-red-100 rounded-xl p-4 animate-in slide-in-from-bottom-2">
+            <h4 class="text-sm font-bold text-red-900 mb-2">Êtes-vous sûr ?</h4>
+            <p class="text-xs text-red-700 mb-4">
+                Vous perdrez l'accès aux fonctionnalités Premium à la fin de votre période actuelle ({{ formatDate(subscription.current_period_end) }}).
+            </p>
+            <div class="flex gap-2">
+                <UiButton @click="showCancelConfirm = false" variant="secondary" size="sm" class="w-full">Retour</UiButton>
+                <UiButton 
+                    @click="cancelSubscription" 
+                    :loading="loadingPortal"
+                    class="w-full bg-red-600 hover:bg-red-700 text-white border-red-700" size="sm">
+                    Confirmer la résiliation
+                </UiButton>
+            </div>
+        </div>
+
         <!-- Actions -->
-        <div class="pt-4 border-t border-ui-border space-y-3">
+        <div v-else class="pt-4 border-t border-ui-border space-y-3">
           <UiButton 
             @click="openStripePortal()" 
             :disabled="loadingPortal"
@@ -133,7 +168,7 @@ const formatPrice = (amount: number, currency: string) => {
                 Changer de carte
               </UiButton>
              <UiButton 
-                @click="openStripePortal('subscription_cancel')" 
+                @click="showCancelConfirm = true" 
                 :disabled="loadingPortal"
                 variant="outline"
                 class="text-xs h-auto py-3 text-red-600 hover:bg-red-50 border-red-200 hover:border-red-300"

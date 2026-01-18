@@ -8,6 +8,7 @@ definePageMeta({
   middleware: ['admin']
 })
 
+const pb = usePocketBase()
 const { stats, loading, fetchStats } = useAdminDashboard()
 
 // Gestion de la modale Analytics
@@ -19,7 +20,27 @@ const openAnalytics = (type: 'users' | 'premium' | 'transactions') => {
   showAnalytics.value = true
 }
 
-onMounted(fetchStats)
+const hasRecentErrors = ref(false)
+
+const checkLogs = async () => {
+  try {
+    // Vérifie les erreurs des dernières 48h
+    const date = new Date()
+    date.setHours(date.getHours() - 48)
+    const filterDate = date.toISOString().replace('T', ' ').substring(0, 19)
+    
+    const result = await pb.collection('logs').getList(1, 1, {
+      filter: `created >= "${filterDate}" && (level = "error" || level = "warning" || level = "fatal")`,
+      fields: 'id'
+    })
+    hasRecentErrors.value = result.totalItems > 0
+  } catch (e) { /* Silencieux si pas de collection logs ou erreur */ }
+}
+
+onMounted(() => {
+  fetchStats()
+  checkLogs()
+})
 </script>
 
 <template>
@@ -101,12 +122,15 @@ onMounted(fetchStats)
           <p class="text-sm text-ui-content-muted">Gérer les catégories globales du système.</p>
         </NuxtLink>
 
-        <NuxtLink to="/admin/logs" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-orange-300 hover:shadow-md transition-all group cursor-pointer">
-          <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <Icon name="lucide:scroll-text" class="w-6 h-6" />
+        <NuxtLink to="/admin/logs" class="bg-ui-surface border rounded-xl p-6 transition-all group cursor-pointer relative overflow-hidden"
+            :class="hasRecentErrors ? 'border-red-500 bg-red-50/10 shadow-red-100' : 'border-ui-border hover:border-orange-300 hover:shadow-md'">
+          <div class="w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
+            :class="hasRecentErrors ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-orange-50 text-orange-600'">
+            <Icon :name="hasRecentErrors ? 'lucide:alert-triangle' : 'lucide:scroll-text'" class="w-6 h-6" />
           </div>
-          <h3 class="text-lg font-bold text-ui-content mb-1">Logs Système</h3>
-          <p class="text-sm text-ui-content-muted">Consulter les erreurs et activités.</p>
+          <h3 class="text-lg font-bold text-ui-content mb-1" :class="{'text-red-700': hasRecentErrors}">Logs Système</h3>
+          <p class="text-sm" :class="hasRecentErrors ? 'text-red-600 font-medium' : 'text-ui-content-muted'">{{ hasRecentErrors ? 'Anomalies détectées récemment' : 'Consulter les erreurs et activités.' }}</p>
+          <div v-if="hasRecentErrors" class="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
         </NuxtLink>
 
         <NuxtLink to="/admin/payment-methods" class="bg-ui-surface border border-ui-border rounded-xl p-6 hover:border-emerald-300 hover:shadow-md transition-all group cursor-pointer">

@@ -11,10 +11,14 @@ export default defineEventHandler(async (event) => {
   const { id, role, extensionDate } = body
 
   // 1. Vérification Admin (Sécurité)
-  // Idéalement, on devrait vérifier le cookie de session ici, 
-  // mais pour l'instant on suppose que le middleware côté client protège l'accès.
-  // Pour plus de sécurité, on peut instancier un PB admin.
-  
+  const pbClient = new PocketBase(process.env.POCKETBASE_URL)
+  const cookie = getHeader(event, 'cookie')
+  pbClient.authStore.loadFromCookie(cookie || '')
+
+  if (!pbClient.authStore.isValid || pbClient.authStore.model?.role !== 3) {
+      throw createError({ statusCode: 403, statusMessage: 'Accès interdit. Droits administrateur requis.' })
+  }
+
   const pb = new PocketBase(process.env.POCKETBASE_URL)
   await pb.admins.authWithPassword(
     process.env.POCKETBASE_ADMIN_EMAIL || '',

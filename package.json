@@ -8,8 +8,24 @@
     "dev": "nuxt dev",
     "dev:electron": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron electron/main.cjs\"",
     "generate": "nuxt generate",
+    "dist": "nuxt generate && electron-builder",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
+  },
+  "build": {
+    "appId": "com.buddyair.app",
+    "productName": "BuddyAir",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      ".output/public/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/favicon.ico"
+    }
   },
   "dependencies": {
     "@nuxt/eslint": "^1.12.1",

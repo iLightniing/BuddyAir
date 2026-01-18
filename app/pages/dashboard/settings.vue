@@ -14,6 +14,10 @@ const tabs = [
   { id: 'patchnotes', label: 'Nouveautés', icon: 'lucide:sparkles' },
   { id: 'about', label: 'À propos', icon: 'lucide:info' }
 ]
+
+const handleTabClick = (id: string) => {
+  activeTab.value = id
+}
 </script>
 
 <template>
@@ -23,7 +27,7 @@ const tabs = [
       <button 
         v-for="tab in tabs" 
         :key="tab.id"
-        @click="activeTab = tab.id"
+        @click="handleTabClick(tab.id)"
         class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all flex-1 md:flex-none justify-center"
         :class="activeTab === tab.id ? 'bg-blue-600 text-white shadow-md' : 'text-ui-content-muted hover:text-ui-content hover:bg-ui-surface-muted'"
       >

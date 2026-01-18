@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+import { navigateTo } from '#app'
+import { useAccounts } from '~/composables/useAccounts'
+import { usePremium } from '~/composables/usePremium'
+
 definePageMeta({
   title: 'Mes Comptes'
 })
 
-import { useAccounts } from '~/composables/useAccounts'
 const { isPremium, openPremiumModal } = usePremium()
 
 const {

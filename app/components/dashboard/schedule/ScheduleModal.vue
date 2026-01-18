@@ -25,7 +25,7 @@ const typeOptions = [
 ]
 
 const { categories, fetchCategories, categoryOptions } = useCategories()
-const { fetchPaymentMethods, paymentMethodOptions } = usePaymentMethods()
+const { fetchPaymentMethods, paymentMethods } = usePaymentMethods()
 const { tags, fetchTags, getTagClass } = useTags()
 
 onMounted(() => {
@@ -38,6 +38,22 @@ const subCategoryOptions = computed(() => {
   const category = form.value.category
   const cat = categories.value.find(c => c.name === category)
   return cat && cat.sub_categories ? cat.sub_categories.map((s: string) => ({ label: s, value: s })) : []
+})
+
+const filteredPaymentMethodOptions = computed(() => {
+  const currentType = form.value.type // 'expense' ou 'income'
+  const methods = paymentMethods.value || []
+
+  return methods
+    .filter((m: any) => {
+      if (m.name === 'Autre' || m.code === 'other') return false
+      const mType = m.type || 'both'
+      if (mType === 'both') return true
+      if (currentType === 'expense' && mType === 'debit') return true
+      if (currentType === 'income' && mType === 'credit') return true
+      return false
+    })
+    .map((m: any) => ({ label: m.name, value: m.code }))
 })
 
 const toggleTag = (tagId: string) => {
@@ -85,7 +101,7 @@ const toggleTag = (tagId: string) => {
 
             <!-- Account -->
             <UiSelect v-model="form.account" label="Compte à débiter" :options="accounts" placeholder="Choisir un compte..." />
-            <UiSelect v-model="form.payment_method" label="Moyen de paiement" :options="paymentMethodOptions" />
+            <UiSelect v-model="form.payment_method" label="Moyen de paiement" :options="filteredPaymentMethodOptions" />
 
             <!-- Category & Sub-category -->
             <div class="grid grid-cols-2 gap-4">

@@ -1,5 +1,4 @@
 import { ref } from 'vue'
-import { mergeCategories } from '~/utils/categoryHelpers'
 
 export const useCategoriesManager = (isAdminMode = false) => {
   const pb = usePocketBase()
@@ -18,7 +17,7 @@ export const useCategoriesManager = (isAdminMode = false) => {
     id: '',
     name: '',
     sub_categories: [] as string[],
-    is_global: false
+    is_system: false
   })
 
   // --- Initialisation & Récupération ---
@@ -28,22 +27,15 @@ export const useCategoriesManager = (isAdminMode = false) => {
       if (isAdminMode) {
         // Admin : On gère la collection 'categories' (Globales)
         const records = await pb.collection('categories').getFullList({
-          sort: '+name'
+          sort: '+order'
         })
-        categoriesList.value = records.map(r => ({ ...r, is_global: true, locked_subs: [] }))
+        categoriesList.value = records.map(r => ({ ...r, is_system: true }))
       } else {
-        // User : On récupère les globales ET les locales
-        const globalRecords = await pb.collection('categories').getFullList({
-          sort: '+name'
-        })
+        // User : On force la synchronisation via le composable principal
+        const { fetchCategories, categories: syncedCats } = useCategories()
+        await fetchCategories(true)
         
-        const localRecords = currentUser.value ? await pb.collection('transaction_categories').getFullList({
-          filter: `user = "${currentUser.value.id}"`,
-          sort: '+name'
-        }) : []
-
-        // Utilisation de la fonction utilitaire extraite
-        categoriesList.value = mergeCategories(globalRecords, localRecords)
+        categoriesList.value = JSON.parse(JSON.stringify(syncedCats.value))
       }
 
     } catch (e) {
@@ -56,47 +48,66 @@ export const useCategoriesManager = (isAdminMode = false) => {
   // --- Actions ---
 
   const openModal = (category: any = null) => {
+    // Sécurité : Empêcher l'édition d'une catégorie système par un utilisateur
+    if (category && !isAdminMode && category.is_system) {
+        return
+    }
+
     if (category) {
       categoryForm.value = JSON.parse(JSON.stringify(category))
-      if (!isAdminMode && !category.id && category.global_id) {
-          categoryForm.value.id = '' 
+      // IMPORTANT : Si le champ JSON est vide en BDD, il peut être null. On force un tableau vide.
+      if (!Array.isArray(categoryForm.value.sub_categories)) {
+          categoryForm.value.sub_categories = []
       }
     } else {
-      categoryForm.value = { id: '', name: '', sub_categories: [], is_global: isAdminMode }
+      categoryForm.value = { id: '', name: '', sub_categories: [], is_system: isAdminMode }
     }
     showModal.value = true
   }
 
-  // Action générique pour sauvegarder une catégorie (appelée par le composant carte)
   const handleSaveCategory = async (categoryData: any) => {
-      // On prépare le formulaire avec les données reçues
       categoryForm.value = JSON.parse(JSON.stringify(categoryData))
-      // Si c'est une globale pure (pas d'ID local), on s'assure que l'ID est vide pour créer une copie
-      if (!isAdminMode && !categoryData.id && categoryData.global_id) {
-          categoryForm.value.id = ''
-      }
       await saveCategory()
   }
 
   const saveCategory = async () => {
     try {
+      const isCreation = !categoryForm.value.id
+      
       const data = {
         name: categoryForm.value.name,
-        sub_categories: categoryForm.value.sub_categories,
+        sub_categories: JSON.parse(JSON.stringify(categoryForm.value.sub_categories || [])), // Nettoyage des Proxies pour l'enregistrement JSON
         user: isAdminMode ? null : currentUser.value?.id,
-        is_system: isAdminMode
+        is_system: isAdminMode ? true : categoryForm.value.is_system, // On préserve le statut système si existant
+        order: isCreation ? categoriesList.value.length : undefined // On ajoute à la fin si création
       }
       
+      // Nettoyage si order est undefined
+      if (data.order === undefined) delete (data as any).order
+
       const collectionName = isAdminMode ? 'categories' : 'transaction_categories'
 
-      if (categoryForm.value.id) {
-        await pb.collection(collectionName).update(categoryForm.value.id, data)
+      let record
+      if (!isCreation) {
+        record = await pb.collection(collectionName).update(categoryForm.value.id, data)
+        // Mise à jour locale immédiate (Modification)
+        const index = categoriesList.value.findIndex(c => c.id === categoryForm.value.id)
+        if (index !== -1) {
+            categoriesList.value[index] = { ...categoriesList.value[index], ...record }
+        }
       } else {
-        await pb.collection(collectionName).create(data)
+        record = await pb.collection(collectionName).create(data)
+        // Mise à jour locale immédiate (Ajout)
+        categoriesList.value.push({ ...record, is_system: isAdminMode })
       }
 
       showModal.value = false
-      await init()
+      
+      // Si on est en mode User, on met à jour le state global pour que les autres composants (modales) voient le changement
+      if (!isAdminMode) {
+          const { categories } = useCategories()
+          categories.value = JSON.parse(JSON.stringify(categoriesList.value))
+      }
     } catch (e) {
       console.error("Erreur sauvegarde:", e)
     }
@@ -109,6 +120,11 @@ export const useCategoriesManager = (isAdminMode = false) => {
 
   const confirmDelete = async () => {
     if (!categoryToDelete.value) return
+
+    // Sécurité : Un utilisateur ne peut pas supprimer une catégorie système
+    if (!isAdminMode && categoryToDelete.value.is_system) {
+        return
+    }
 
     try {
         const idToDelete = categoryToDelete.value.id
@@ -127,8 +143,22 @@ export const useCategoriesManager = (isAdminMode = false) => {
     }
   }
 
-  const updateOrder = () => {
-    // Logique de tri des catégories parents si nécessaire
+  const updateOrder = async () => {
+    const collectionName = isAdminMode ? 'categories' : 'transaction_categories'
+    const promises = categoriesList.value.map((item, index) => {
+        if (item.order !== index) {
+            item.order = index
+            return pb.collection(collectionName).update(item.id, { order: index })
+        }
+        return Promise.resolve()
+    })
+    try {
+        await Promise.all(promises)
+        if (!isAdminMode) {
+             const { categories } = useCategories()
+             categories.value = JSON.parse(JSON.stringify(categoriesList.value))
+        }
+    } catch (e) { console.error(e) }
   }
 
   return {
@@ -141,8 +171,8 @@ export const useCategoriesManager = (isAdminMode = false) => {
     init,
     updateOrder,
     openModal,
+    handleSaveCategory,
     saveCategory,
-    handleSaveCategory, // Nouvelle méthode exposée
     requestDelete,
     confirmDelete
   }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
+import { ref, watch } from 'vue'
 
 const props = defineProps<{
   category: any
@@ -13,51 +14,66 @@ const newSubCategory = ref('')
 const editingCat = ref<{ id: string, value: string } | null>(null)
 const editingSub = ref<{ index: number, value: string } | null>(null)
 
+// État local pour les sous-catégories (pour l'affichage immédiat et VueDraggable)
+const localSubCategories = ref<string[]>([])
+
+watch(() => props.category.sub_categories, (newVal) => {
+    localSubCategories.value = [...(newVal || [])]
+}, { immediate: true })
+
 // --- Helpers ---
 const isSubLocked = (subName: string) => {
-    // En mode admin, rien n'est verrouillé. En mode user, on vérifie locked_subs.
+    // En mode admin, rien n'est verrouillé.
     if (props.isAdmin) return false
-    return props.category.locked_subs && props.category.locked_subs.includes(subName)
+    // En mode user, on vérifie si la sous-catégorie fait partie des verrouillées (définies par la synchro)
+    if (props.category.is_system && props.category.locked_sub_categories) {
+        return props.category.locked_sub_categories.includes(subName)
+    }
+    return false
 }
 
 // --- Actions ---
 const onSave = (updatedCategory: any) => {
-    // On émet une copie propre pour éviter les mutations directes de props qui se propagent mal
-    emit('save', JSON.parse(JSON.stringify(updatedCategory)))
+    emit('save', updatedCategory)
 }
 
 // Ajout Sous-catégorie
 const addSubCategory = () => {
     if (!newSubCategory.value.trim()) return
-    const updated = { ...props.category }
-    if (!updated.sub_categories) updated.sub_categories = []
-    updated.sub_categories.push(newSubCategory.value.trim())
+    
+    // Mise à jour optimiste locale
+    localSubCategories.value.push(newSubCategory.value.trim())
+    
+    const updated = JSON.parse(JSON.stringify(props.category))
+    updated.sub_categories = [...localSubCategories.value]
     onSave(updated)
     newSubCategory.value = ''
 }
 
 // Suppression Sous-catégorie
 const removeSubCategory = (index: number) => {
-    const updated = { ...props.category }
-    updated.sub_categories.splice(index, 1)
+    localSubCategories.value.splice(index, 1)
+    
+    const updated = JSON.parse(JSON.stringify(props.category))
+    updated.sub_categories = [...localSubCategories.value]
     onSave(updated)
 }
 
 // Réordonnancement
 const onOrderChange = () => {
-    // VueDraggable a déjà muté le tableau local (props.category.sub_categories via v-model)
-    // On déclenche juste la sauvegarde
-    onSave(props.category)
+    const updated = JSON.parse(JSON.stringify(props.category))
+    updated.sub_categories = [...localSubCategories.value]
+    onSave(updated)
 }
 
 // Édition Titre
 const startEditCat = () => {
-    if (!props.isAdmin && props.category.is_global_source) return
+    if (!props.isAdmin && props.category.is_system) return
     editingCat.value = { id: props.category.id || props.category.name, value: props.category.name }
 }
 const saveEditCat = () => {
     if (!editingCat.value || !editingCat.value.value.trim()) return
-    const updated = { ...props.category }
+    const updated = JSON.parse(JSON.stringify(props.category))
     updated.name = editingCat.value.value.trim()
     onSave(updated)
     editingCat.value = null
@@ -70,8 +86,10 @@ const startEditSub = (index: number, val: string) => {
 }
 const saveEditSub = () => {
     if (!editingSub.value || !editingSub.value.value.trim()) return
-    const updated = { ...props.category }
-    updated.sub_categories[editingSub.value.index] = editingSub.value.value.trim()
+    localSubCategories.value[editingSub.value.index] = editingSub.value.value.trim()
+    
+    const updated = JSON.parse(JSON.stringify(props.category))
+    updated.sub_categories = [...localSubCategories.value]
     onSave(updated)
     editingSub.value = null
 }
@@ -105,20 +123,20 @@ const cancelEdit = () => {
         <div v-else class="flex items-center gap-2 overflow-hidden cursor-pointer w-full" @dblclick="startEditCat">
             <span class="font-bold text-ui-content truncate select-none flex items-center gap-2" :title="category.name">
                 {{ category.name }}
-                <Icon v-if="category.is_global_source" name="lucide:lock" class="w-3 h-3 text-red-500 shrink-0" title="Catégorie de base (Verrouillée)" />
+                <Icon v-if="category.is_system && !isAdmin" name="lucide:lock" class="w-3 h-3 text-red-500 shrink-0" title="Catégorie système (Verrouillée)" />
             </span>
         </div>
       </div>
       
       <!-- Actions Header -->
       <div class="flex gap-1 shrink-0" v-if="!editingCat">
-        <button v-if="isAdmin || !category.is_global_source" @click="startEditCat" class="p-1.5 hover:bg-blue-50 text-ui-content-muted hover:text-blue-600 rounded-md transition-colors" title="Modifier le nom">
+        <button v-if="isAdmin || !category.is_system" @click="startEditCat" class="p-1.5 hover:bg-blue-50 text-ui-content-muted hover:text-blue-600 rounded-md transition-colors" title="Modifier le nom">
             <Icon name="lucide:pen-line" class="w-4 h-4" />
         </button>
 
-        <!-- Bouton Supprimer : Désactivé si Global Source en mode User -->
+        <!-- Bouton Supprimer : Désactivé si Système en mode User -->
         <button 
-            v-if="isAdmin || !category.is_global_source"
+            v-if="isAdmin || !category.is_system"
             @click="emit('delete', category)" 
             class="p-1.5 hover:bg-red-50 text-ui-content-muted hover:text-red-600 rounded-md transition-colors" 
             title="Supprimer la catégorie"
@@ -131,14 +149,14 @@ const cancelEdit = () => {
     <!-- Liste Sous-catégories -->
     <div class="p-3 flex-1 flex flex-col gap-2">
         <VueDraggable 
-            v-model="category.sub_categories" 
+            v-model="localSubCategories" 
             group="sub-categories"
             :animation="300"
             handle=".drag-handle-sub"
             @end="onOrderChange"
             class="space-y-1 min-h-[10px]"
         >
-            <div v-for="(sub, index) in category.sub_categories" :key="sub" class="flex items-center justify-between group/sub p-2 rounded-lg hover:bg-ui-surface-muted border border-transparent hover:border-ui-border transition-colors text-sm">
+            <div v-for="(sub, index) in localSubCategories" :key="sub" class="flex items-center justify-between group/sub p-2 rounded-lg hover:bg-ui-surface-muted border border-transparent hover:border-ui-border transition-colors text-sm">
                 <!-- Mode Édition Sous-catégorie -->
                 <div v-if="editingSub && editingSub.index === index" class="flex items-center gap-2 w-full">
                     <input 
@@ -161,7 +179,7 @@ const cancelEdit = () => {
 
                         <span class="text-ui-content truncate select-none flex items-center gap-2" :class="{'text-ui-content-muted': isSubLocked(sub)}">
                             {{ sub }}
-                            <Icon v-if="isSubLocked(sub)" name="lucide:lock" class="w-3 h-3 text-red-500 shrink-0" title="Sous-catégorie de base (Verrouillée)" />
+                            <Icon v-if="isSubLocked(sub)" name="lucide:lock" class="w-3 h-3 text-red-500 shrink-0" title="Sous-catégorie système (Verrouillée)" />
                         </span>
                     </div>
                     
@@ -179,7 +197,7 @@ const cancelEdit = () => {
             </div>
         </VueDraggable>
 
-        <div v-if="!category.sub_categories || category.sub_categories.length === 0" class="text-xs text-ui-content-muted italic p-2 text-center bg-ui-surface-muted/20 rounded-lg border border-dashed border-ui-border/50">
+        <div v-if="localSubCategories.length === 0" class="text-xs text-ui-content-muted italic p-2 text-center bg-ui-surface-muted/20 rounded-lg border border-dashed border-ui-border/50">
             Aucune sous-catégorie actuellement
         </div>
         

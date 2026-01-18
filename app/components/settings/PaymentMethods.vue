@@ -5,7 +5,7 @@ import PaymentMethodCard from './PaymentMethodCard.vue'
 
 const { 
   paymentMethods, showModal, form, showDeleteModal, itemToDelete, icons,
-  init, updateOrder, openModal, save, handleSaveMethod, requestDelete, confirmDelete 
+  init, updateOrder, openModal, save, requestDelete, confirmDelete 
 } = usePaymentMethodsManager(false)
 
 onMounted(init)
@@ -24,21 +24,23 @@ onMounted(init)
       </UiButton>
     </div>
 
+    <div v-if="paymentMethods.length > 0" class="bg-ui-surface border border-ui-border rounded-xl shadow-sm overflow-hidden">
     <VueDraggable 
       v-model="paymentMethods" 
       :animation="300" 
       handle=".drag-handle"
       @end="updateOrder"
-      class="flex flex-col gap-3"
+      class="flex flex-col"
     >
       <PaymentMethodCard 
           v-for="item in paymentMethods" 
-          :key="item.name" 
+          :key="item.id" 
           :method="item" 
-          @save="handleSaveMethod"
+          @edit="openModal"
           @delete="requestDelete"
       />
     </VueDraggable>
+    </div>
     
     <div v-if="paymentMethods.length === 0" class="p-12 text-center text-ui-content-muted border border-dashed border-ui-border rounded-xl">
       Aucun moyen de paiement configuré.
@@ -52,6 +54,16 @@ onMounted(init)
         <form @submit.prevent="save" class="space-y-4">
           <UiInput v-model="form.name" label="Nom" placeholder="Ex: PayPal" required autofocus />
           
+          <UiSelect 
+            v-model="form.type" 
+            label="Type de transaction" 
+            :options="[
+              { label: 'Tout (Débit & Crédit)', value: 'both' },
+              { label: 'Débit (Dépense)', value: 'debit' },
+              { label: 'Crédit (Revenu)', value: 'credit' }
+            ]" 
+          />
+
           <div>
             <label class="text-[10px] font-black text-ui-content-muted uppercase tracking-widest ml-1 mb-2 block">Icône</label>
             <div class="grid grid-cols-6 gap-2">

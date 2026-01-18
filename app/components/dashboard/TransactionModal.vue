@@ -15,7 +15,7 @@ const emit = defineEmits(['close', 'success', 'delete'])
 const { form, loading, handleSubmit, availableAccounts, isInitializing } = useTransactionForm(props, emit)
 
 const { categories, fetchCategories, categoryOptions } = useCategories()
-const { fetchPaymentMethods, paymentMethodOptions } = usePaymentMethods()
+const { fetchPaymentMethods, paymentMethods } = usePaymentMethods()
 const { applyRules, fetchRules } = useRules()
 const { tags, fetchTags, getTagClass } = useTags()
 
@@ -50,6 +50,24 @@ const typeOptions = computed(() => {
     { label: 'Dépense', value: 'expense', activeClass: 'bg-red-50 text-red-600 border-red-200 shadow-sm' },
     { label: 'Revenu', value: 'income', activeClass: 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm' }
   ]
+})
+
+const filteredPaymentMethodOptions = computed(() => {
+  const currentType = form.value.type // 'expense' ou 'income'
+  const methods = paymentMethods.value || []
+
+  return methods
+    .filter((m: any) => {
+      // Suppression explicite de "Autre" si présent
+      if (m.name === 'Autre' || m.code === 'other') return false
+
+      const mType = m.type || 'both' // Par défaut 'both' si non défini
+      if (mType === 'both') return true
+      if (currentType === 'expense' && mType === 'debit') return true
+      if (currentType === 'income' && mType === 'credit') return true
+      return false
+    })
+    .map((m: any) => ({ label: m.name, value: m.code }))
 })
 
 // Réinitialiser la sous-catégorie si la catégorie change (sauf à l'initialisation)
@@ -136,7 +154,7 @@ const toggleTag = (tagId: string) => {
               <span class="absolute right-0 top-1/2 -translate-y-1/2 text-ui-content-muted font-bold pointer-events-none">EUR</span>
             </div>
           </div>
-          <UiSelect v-if="!(accountGroup === 'credit' && form.type === 'income')" v-model="form.payment_method" label="Moyen de paiement" :options="paymentMethodOptions" />
+          <UiSelect v-if="!(accountGroup === 'credit' && form.type === 'income')" v-model="form.payment_method" label="Moyen de paiement" :options="filteredPaymentMethodOptions" />
         </div>
 
         <!-- Virement : Compte cible -->

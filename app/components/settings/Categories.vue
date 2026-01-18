@@ -48,7 +48,7 @@ const openCreateModal = () => {
     >
       <CategoryCard 
         v-for="cat in categoriesList" 
-        :key="cat.name" 
+        :key="cat.id" 
         :category="cat"
         @save="handleSaveCategory"
         @delete="requestDelete"

@@ -1,5 +1,4 @@
 import { ref } from 'vue'
-import { mergePaymentMethods } from '~/utils/paymentMethodHelpers'
 
 export const usePaymentMethodsManager = (isAdminMode = false) => {
   const pb = usePocketBase()
@@ -18,8 +17,9 @@ export const usePaymentMethodsManager = (isAdminMode = false) => {
     id: '',
     name: '',
     icon: 'lucide:credit-card',
-    is_global: false,
-    code: ''
+    is_system: false,
+    code: '',
+    type: 'both'
   })
 
   const icons = [
@@ -36,21 +36,16 @@ export const usePaymentMethodsManager = (isAdminMode = false) => {
       if (isAdminMode) {
         // Admin : On gère la collection 'system_payment_methods' (Globales)
         const records = await pb.collection('system_payment_methods').getFullList({
-          sort: '+name'
+          sort: '+order'
         })
-        paymentMethods.value = records.map(r => ({ ...r, is_global_source: true }))
+        paymentMethods.value = records.map(r => ({ ...r, is_system: true }))
       } else {
-        // User : On récupère les globales (System) ET les locales (User)
-        const globalRecords = await pb.collection('system_payment_methods').getFullList({
-          sort: '+name'
-        })
+        // User : On force la synchronisation via le composable principal pour récupérer les nouveautés Admin
+        const { fetchPaymentMethods, paymentMethods: syncedMethods } = usePaymentMethods()
+        await fetchPaymentMethods(true) // true = forcer la vérification
         
-        const localRecords = currentUser.value ? await pb.collection('payment_methods').getFullList({
-          filter: `user = "${currentUser.value.id}"`,
-          sort: '+name'
-        }) : []
-
-        paymentMethods.value = mergePaymentMethods(globalRecords, localRecords)
+        // On copie les données synchronisées pour l'affichage local
+        paymentMethods.value = JSON.parse(JSON.stringify(syncedMethods.value))
       }
 
     } catch (e) {
@@ -65,13 +60,8 @@ export const usePaymentMethodsManager = (isAdminMode = false) => {
   const openModal = (item: any = null) => {
     if (item) {
       form.value = JSON.parse(JSON.stringify(item))
-      // Si c'est une globale pure (pas d'ID local), on s'assure que l'ID est vide pour créer une copie
-      if (!isAdminMode && !item.id && item.global_id) {
-          form.value.id = '' 
-          form.value.code = ''
-      }
     } else {
-      form.value = { id: '', name: '', icon: 'lucide:credit-card', is_global: isAdminMode, code: '' }
+      form.value = { id: '', name: '', icon: 'lucide:credit-card', is_system: isAdminMode, code: '', type: 'both' }
     }
     showModal.value = true
   }
@@ -79,13 +69,6 @@ export const usePaymentMethodsManager = (isAdminMode = false) => {
   // Action générique pour sauvegarder (appelée par le composant carte pour l'édition inline)
   const handleSaveMethod = async (itemData: any) => {
       form.value = JSON.parse(JSON.stringify(itemData))
-      if (!isAdminMode && !itemData.id && itemData.global_id) {
-          form.value.id = ''
-          // Générer un code si manquant lors de la conversion global -> local
-          if (!(form.value as any).code) {
-             (form.value as any).code = form.value.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
-          }
-      }
       await save()
   }
 
@@ -96,16 +79,21 @@ export const usePaymentMethodsManager = (isAdminMode = false) => {
       const data: any = {
         name: form.value.name,
         icon: form.value.icon,
+        type: form.value.type || 'both',
+        is_system: isAdminMode // Admin = true, User = false (toujours, car c'est une copie)
       }
       
+      // Gestion du code (requis) pour Admin ET User
+      // Si le code est présent dans le formulaire, on l'utilise.
+      // Sinon, on le génère à partir du nom.
+      let code = (form.value as any).code
+      if (!code && form.value.name) {
+         code = form.value.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+      }
+      if (code) data.code = code
+
       if (!isAdminMode) {
           data.user = currentUser.value?.id
-          // Génération du code (slug) si non présent ou vide
-          if (!(form.value as any).code) {
-             data.code = form.value.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
-          } else {
-             data.code = (form.value as any).code
-          }
       }
 
       if (form.value.id) {
@@ -146,8 +134,27 @@ export const usePaymentMethodsManager = (isAdminMode = false) => {
     }
   }
 
-  const updateOrder = () => {
-    // Logique de tri si nécessaire
+  const updateOrder = async () => {
+    const collectionName = isAdminMode ? 'system_payment_methods' : 'payment_methods'
+    
+    const promises = paymentMethods.value.map((item, index) => {
+      if (item.order !== index) {
+        item.order = index
+        return pb.collection(collectionName).update(item.id, { order: index })
+      }
+      return Promise.resolve()
+    })
+
+    try {
+      await Promise.all(promises)
+      
+      if (!isAdminMode) {
+         const { paymentMethods: globalMethods } = usePaymentMethods()
+         globalMethods.value = JSON.parse(JSON.stringify(paymentMethods.value))
+      }
+    } catch (e) {
+      console.error("Erreur lors de la sauvegarde de l'ordre:", e)
+    }
   }
 
   return {

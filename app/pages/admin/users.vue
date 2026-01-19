@@ -30,7 +30,7 @@ const filteredUsers = computed(() => {
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
     res = res.filter(u => 
-      u.email.toLowerCase().includes(q) || 
+      (u.email && u.email.toLowerCase().includes(q)) || 
       (u.name && u.name.toLowerCase().includes(q))
     )
   }
@@ -46,7 +46,7 @@ const filteredUsers = computed(() => {
         valB = new Date(b.created).getTime()
     }
     // Gestion des chaînes (insensible à la casse)
-    else if (typeof valA === 'string') {
+    else if (typeof valA === 'string' && typeof valB === 'string') {
         valA = valA.toLowerCase()
         valB = valB.toLowerCase()
     }

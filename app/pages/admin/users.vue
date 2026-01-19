@@ -87,18 +87,20 @@ const confirmPromote = async () => {
         return
     }
 
-    let endDate = new Date()
+    let endDateStr = ''
     if (months >= 999) {
-        endDate = new Date('2030-01-01')
+        endDateStr = '' // Chaîne vide = Vraiment illimité
     } else {
+        const endDate = new Date()
         endDate.setMonth(endDate.getMonth() + months)
+        endDateStr = endDate.toISOString()
     }
     
     try {
         await pb.collection('users').update(userToPromote.value.id, {
             role: 2,
-            current_period_end: endDate.toISOString(),
-            subscription_end: endDate.toISOString()
+            current_period_end: endDateStr,
+            subscription_end: endDateStr
         })
         notify("Utilisateur passé Premium (Offert) !", "success")
         showPromoteModal.value = false
@@ -106,6 +108,21 @@ const confirmPromote = async () => {
     } catch (e) {
         console.error(e)
         notify("Erreur lors de la promotion.", "error")
+    }
+}
+
+const demoteToFree = async (u: any) => {
+    if (!confirm(`Voulez-vous retirer le statut Premium de ${u.name || u.email} ?`)) return
+    try {
+        await pb.collection('users').update(u.id, {
+            role: 1,
+            current_period_end: '',
+            subscription_end: ''
+        })
+        notify("Utilisateur repassé en Gratuit.", "success")
+        fetchUsers()
+    } catch (e) {
+        notify("Erreur lors de la rétrogradation.", "error")
     }
 }
 
@@ -192,6 +209,9 @@ onMounted(fetchUsers)
                 <button v-if="user.role !== 2" @click="openPromoteModal(user)" class="p-2 hover:bg-amber-50 text-amber-600 rounded-md transition-colors" title="Offrir Premium">
                   <Icon name="lucide:crown" class="w-4 h-4" />
                 </button>
+                <button v-else @click="demoteToFree(user)" class="p-2 hover:bg-red-50 text-red-600 rounded-md transition-colors" title="Retirer Premium">
+                  <Icon name="lucide:ban" class="w-4 h-4" />
+                </button>
                 <button @click="handleView(user)" class="p-2 hover:bg-blue-50 text-blue-600 rounded-md transition-colors" title="Voir les détails">
                   <Icon name="lucide:eye" class="w-4 h-4" />
                 </button>
@@ -251,7 +271,7 @@ onMounted(fetchUsers)
                 <p class="text-xs text-amber-800 font-medium">
                     Expiration prévue : 
                     <span class="font-bold">
-                        {{ Number(promoteDuration) >= 999 ? 'Illimité (01/01/2030)' : new Date(new Date().setMonth(new Date().getMonth() + Number(promoteDuration))).toLocaleDateString('fr-FR') }}
+                        {{ Number(promoteDuration) >= 999 ? 'Illimité' : new Date(new Date().setMonth(new Date().getMonth() + Number(promoteDuration))).toLocaleDateString('fr-FR') }}
                     </span>
                 </p>
             </div>

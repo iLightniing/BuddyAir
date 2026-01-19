@@ -11,6 +11,7 @@ definePageMeta({
 })
 
 const pb = usePocketBase()
+const { notify } = useNotification()
 
 const {
   loading, users, showViewModal, showEditModal, showDeleteModal, selectedUser, roles,
@@ -65,6 +66,47 @@ const toggleSort = (key: string) => {
     sortKey.value = key
     sortDesc.value = true // Par défaut descendant (plus récent en premier)
   }
+}
+
+const showPromoteModal = ref(false)
+const userToPromote = ref<any>(null)
+const promoteDuration = ref<string | number>(1)
+
+const openPromoteModal = (u: any) => {
+    userToPromote.value = u
+    promoteDuration.value = 1
+    showPromoteModal.value = true
+}
+
+const confirmPromote = async () => {
+    if (!userToPromote.value) return
+
+    const months = Number(promoteDuration.value)
+    if (isNaN(months) || months <= 0) {
+        notify("Durée invalide.", "error")
+        return
+    }
+
+    let endDate = new Date()
+    if (months >= 999) {
+        endDate = new Date('2030-01-01')
+    } else {
+        endDate.setMonth(endDate.getMonth() + months)
+    }
+    
+    try {
+        await pb.collection('users').update(userToPromote.value.id, {
+            role: 2,
+            current_period_end: endDate.toISOString(),
+            subscription_end: endDate.toISOString()
+        })
+        notify("Utilisateur passé Premium (Offert) !", "success")
+        showPromoteModal.value = false
+        fetchUsers()
+    } catch (e) {
+        console.error(e)
+        notify("Erreur lors de la promotion.", "error")
+    }
 }
 
 onMounted(fetchUsers)
@@ -147,6 +189,9 @@ onMounted(fetchUsers)
             </td>
             <td class="p-4 text-right">
               <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button v-if="user.role !== 2" @click="openPromoteModal(user)" class="p-2 hover:bg-amber-50 text-amber-600 rounded-md transition-colors" title="Offrir Premium">
+                  <Icon name="lucide:crown" class="w-4 h-4" />
+                </button>
                 <button @click="handleView(user)" class="p-2 hover:bg-blue-50 text-blue-600 rounded-md transition-colors" title="Voir les détails">
                   <Icon name="lucide:eye" class="w-4 h-4" />
                 </button>
@@ -183,5 +228,40 @@ onMounted(fetchUsers)
       @close="showDeleteModal = false"
       @confirm="confirmDelete"
     />
+
+    <!-- Modal : Offrir Premium -->
+    <UiModal :show="showPromoteModal" @close="showPromoteModal = false">
+      <div class="bg-ui-surface border border-ui-border p-6 rounded-xl shadow-2xl max-w-md w-full">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center">
+            <Icon name="lucide:crown" class="w-5 h-5" />
+          </div>
+          <h3 class="text-lg font-black text-ui-content tracking-tight">Offrir Premium</h3>
+        </div>
+        
+        <p class="text-sm text-ui-content-muted mb-6">
+          Combien de mois de Premium offrir à <span class="font-bold text-ui-content">{{ userToPromote?.name || userToPromote?.email }}</span> ?
+        </p>
+
+        <div class="space-y-4 mb-6">
+            <UiInput v-model="promoteDuration" label="Durée (Mois)" type="number" min="1" placeholder="Ex: 1" />
+            <p class="text-xs text-ui-content-muted -mt-2">Entrez 999 pour illimité (2030).</p>
+            
+            <div v-if="promoteDuration" class="p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                <p class="text-xs text-amber-800 font-medium">
+                    Expiration prévue : 
+                    <span class="font-bold">
+                        {{ Number(promoteDuration) >= 999 ? 'Illimité (01/01/2030)' : new Date(new Date().setMonth(new Date().getMonth() + Number(promoteDuration))).toLocaleDateString('fr-FR') }}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+          <UiButton @click="showPromoteModal = false" variant="secondary" class="flex-1">Annuler</UiButton>
+          <UiButton @click="confirmPromote" class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 border-none text-white shadow-lg shadow-amber-500/20">Confirmer</UiButton>
+        </div>
+      </div>
+    </UiModal>
   </div>
 </template>

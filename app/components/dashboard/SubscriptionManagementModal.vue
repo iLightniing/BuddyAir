@@ -98,6 +98,7 @@ const openStripePortal = async (flow?: 'payment_method_update' | 'subscription_c
 }
 
 const formatDate = (dateStr: string) => {
+  if (!dateStr) return 'Illimité'
   return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
@@ -277,6 +278,25 @@ const openPremium = () => {
             Vous serez redirigé vers l'espace sécurisé Stripe.
           </p>
         </div>
+      </div>
+
+      <!-- Premium Manuel / Offert (Role 2 mais pas d'abonnement Stripe détecté) -->
+      <div v-else-if="user?.role === 2" class="space-y-6 animate-in slide-in-from-left-4 duration-300">
+        <div class="flex items-center gap-3 p-4 border border-emerald-100 bg-emerald-50 rounded-xl">
+          <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-emerald-600">
+            <Icon name="lucide:gift" class="w-6 h-6" />
+          </div>
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-emerald-800">Statut</p>
+            <p class="font-medium text-emerald-900">Premium (Offert / Manuel)</p>
+          </div>
+        </div>
+
+        <div class="p-4 bg-ui-surface-muted/50 rounded-xl border border-ui-border">
+            <p class="text-xs text-ui-content-muted font-medium mb-1">Expire le</p>
+            <p class="text-lg font-black text-ui-content">{{ formatDate(user.current_period_end) }}</p>
+        </div>
+        <p class="text-xs text-center text-ui-content-muted">Cet accès a été activé manuellement par un administrateur.</p>
       </div>
 
       <!-- Plan Gratuit -->

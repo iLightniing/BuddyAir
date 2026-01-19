@@ -9,6 +9,17 @@ const loading = ref(false)
 const selectedPlan = ref<'monthly' | 'yearly'>('yearly') // Annuel par défaut (Upsell)
 const showEmbeddedCheckout = ref(false)
 
+// Réinitialiser l'état quand on ferme la modale
+watch(showPremiumModal, (isOpen) => {
+  if (!isOpen) {
+    // Petit délai pour laisser l'animation de fermeture se terminer proprement
+    setTimeout(() => {
+      showEmbeddedCheckout.value = false
+      loading.value = false
+    }, 300)
+  }
+})
+
 // Chargeur dynamique du SDK Stripe (évite d'installer @stripe/stripe-js)
 const loadStripeSdk = () => {
     return new Promise((resolve) => {

@@ -10,10 +10,62 @@ definePageMeta({
   middleware: ['admin']
 })
 
+const pb = usePocketBase()
+
 const {
   loading, users, showViewModal, showEditModal, showDeleteModal, selectedUser, roles,
   fetchUsers, getRoleLabel, handleView, handleEdit, handleDelete, confirmDelete, impersonate
 } = useUsersManager()
+
+// --- Filtrage & Tri ---
+const searchQuery = ref('')
+const sortKey = ref('created')
+const sortDesc = ref(true)
+
+const filteredUsers = computed(() => {
+  let res = [...users.value]
+
+  // 1. Recherche
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    res = res.filter(u => 
+      u.email.toLowerCase().includes(q) || 
+      (u.name && u.name.toLowerCase().includes(q))
+    )
+  }
+
+  // 2. Tri
+  res.sort((a, b) => {
+    let valA = a[sortKey.value]
+    let valB = b[sortKey.value]
+    
+    // Gestion spécifique pour les dates
+    if (sortKey.value === 'created') {
+        valA = new Date(a.created).getTime()
+        valB = new Date(b.created).getTime()
+    }
+    // Gestion des chaînes (insensible à la casse)
+    else if (typeof valA === 'string') {
+        valA = valA.toLowerCase()
+        valB = valB.toLowerCase()
+    }
+
+    if (valA < valB) return sortDesc.value ? 1 : -1
+    if (valA > valB) return sortDesc.value ? -1 : 1
+    return 0
+  })
+
+  return res
+})
+
+const toggleSort = (key: string) => {
+  if (sortKey.value === key) {
+    sortDesc.value = !sortDesc.value
+  } else {
+    sortKey.value = key
+    sortDesc.value = true // Par défaut descendant (plus récent en premier)
+  }
+}
 
 onMounted(fetchUsers)
 </script>
@@ -26,8 +78,19 @@ onMounted(fetchUsers)
         <UiBackButton to="/admin" />
         <h1 class="text-2xl font-black text-ui-content tracking-tight">Utilisateurs</h1>
       </div>
-      <div class="text-sm text-ui-content-muted font-bold">
-        {{ users.length }} inscrit(s)
+      <div class="flex items-center gap-4">
+        <div class="relative">
+            <Icon name="lucide:search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ui-content-muted" />
+            <input 
+                v-model="searchQuery" 
+                type="text" 
+                placeholder="Rechercher..." 
+                class="pl-9 pr-4 py-2 bg-ui-surface border border-ui-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all w-64"
+            >
+        </div>
+        <div class="text-sm text-ui-content-muted font-bold bg-ui-surface-muted px-3 py-2 rounded-lg border border-ui-border">
+            {{ filteredUsers.length }} / {{ users.length }}
+        </div>
       </div>
     </div>
 
@@ -40,19 +103,34 @@ onMounted(fetchUsers)
       <table v-else class="w-full text-left border-collapse">
         <thead class="bg-ui-surface-muted/50 border-b border-ui-border text-[10px] font-black text-ui-content-muted uppercase tracking-widest">
           <tr>
-            <th class="p-4">Utilisateur</th>
-            <th class="p-4">Email</th>
-            <th class="p-4">Rôle</th>
-            <th class="p-4">Inscrit le</th>
+            <th class="p-4 cursor-pointer hover:text-ui-content transition-colors group" @click="toggleSort('name')">
+                Utilisateur
+                <Icon v-if="sortKey === 'name'" :name="sortDesc ? 'lucide:chevron-down' : 'lucide:chevron-up'" class="w-3 h-3 inline-block ml-1" />
+            </th>
+            <th class="p-4 cursor-pointer hover:text-ui-content transition-colors group" @click="toggleSort('email')">
+                Email
+                <Icon v-if="sortKey === 'email'" :name="sortDesc ? 'lucide:chevron-down' : 'lucide:chevron-up'" class="w-3 h-3 inline-block ml-1" />
+            </th>
+            <th class="p-4 cursor-pointer hover:text-ui-content transition-colors group" @click="toggleSort('role')">
+                Rôle
+                <Icon v-if="sortKey === 'role'" :name="sortDesc ? 'lucide:chevron-down' : 'lucide:chevron-up'" class="w-3 h-3 inline-block ml-1" />
+            </th>
+            <th class="p-4 cursor-pointer hover:text-ui-content transition-colors group" @click="toggleSort('created')">
+                Inscrit le
+                <Icon v-if="sortKey === 'created'" :name="sortDesc ? 'lucide:chevron-down' : 'lucide:chevron-up'" class="w-3 h-3 inline-block ml-1" />
+            </th>
             <th class="p-4 text-right">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-ui-border">
-          <tr v-for="user in users" :key="user.id" class="group hover:bg-ui-surface-muted/30 transition-colors">
+          <tr v-if="filteredUsers.length === 0">
+            <td colspan="5" class="p-8 text-center text-ui-content-muted text-sm">Aucun utilisateur trouvé.</td>
+          </tr>
+          <tr v-for="user in filteredUsers" :key="user.id" class="group hover:bg-ui-surface-muted/30 transition-colors">
             <td class="p-4">
               <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs overflow-hidden">
-                  <img v-if="user.avatar" :src="`http://127.0.0.1:8090/api/files/users/${user.id}/${user.avatar}`" class="w-full h-full object-cover" alt="Avatar" />
+                  <img v-if="user.avatar" :src="pb.files.getUrl(user, user.avatar)" class="w-full h-full object-cover" alt="Avatar" />
                   <span v-else>{{ user.name?.charAt(0).toUpperCase() || 'U' }}</span>
                 </div>
                 <span class="font-bold text-ui-content text-sm">{{ user.name || 'Sans nom' }}</span>

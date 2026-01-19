@@ -62,7 +62,7 @@ onMounted(fetchSubscriptionStatus)
 // Date affichée : soit celle de la BDD, soit celle récupérée à la volée
 const displayDate = computed(() => {
   const date = user.value?.subscription_end || user.value?.current_period_end || localSubscriptionDate.value
-  return date ? new Date(date).toLocaleDateString() : 'Chargement...'
+  return date ? new Date(date).toLocaleDateString('fr-FR') : 'Chargement...'
 })
 
 const cardTheme = computed(() => {

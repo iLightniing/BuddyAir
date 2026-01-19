@@ -11,10 +11,21 @@ export const useSocialAuth = () => {
     const currentMode = mode || (route.path.includes('login') ? 'login' : 'register')
 
     loading.value = true
+
+    // Timeout de sécurité pour éviter le chargement infini sur mobile
+    // (Si la popup est perdue, bloquée ou si l'utilisateur change d'app)
+    const timeoutId = setTimeout(() => {
+      if (loading.value) {
+        loading.value = false
+        notify("Délai d'attente dépassé. Veuillez réessayer.", "error")
+      }
+    }, 60000) // 60 secondes
+
     try {
       // Lancement du flux OAuth2 via Popup
       // Cela gère à la fois l'inscription et la connexion
       const authData = await pb.collection('users').authWithOAuth2({ provider: 'google' })
+      clearTimeout(timeoutId)
       
       // Vérification post-login
       if (pb.authStore.isValid && authData.record) {
@@ -45,6 +56,7 @@ export const useSocialAuth = () => {
         await navigateTo('/dashboard')
       }
     } catch (e: any) {
+      clearTimeout(timeoutId)
       // On ignore l'erreur si l'utilisateur ferme la popup volontairement
       if (e.isAbort) return
       

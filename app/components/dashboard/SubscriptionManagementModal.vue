@@ -7,27 +7,57 @@ const props = defineProps<{
 
 const emit = defineEmits(['close', 'updated'])
 const { notify } = useNotification()
+const { showPremiumModal } = usePremium()
 
 const loading = ref(true)
 const subscription = ref<any>(null)
 const loadingPortal = ref(false)
 const showCancelConfirm = ref(false)
+const showHistory = ref(false)
+const invoices = ref<any[]>([])
+const loadingInvoices = ref(false)
 
 // Récupérer les infos dès l'ouverture
 watch(() => props.show, async (newVal) => {
-  if (newVal && props.user?.stripe_customer_id) {
-    loading.value = true
-    try {
-      subscription.value = await $fetch('/api/stripe/subscription', {
-        query: { customerId: props.user.stripe_customer_id }
-      })
-    } catch (e) {
-      console.error(e)
-    } finally {
+  if (newVal) {
+    if (props.user?.stripe_customer_id) {
+      loading.value = true
+      try {
+        subscription.value = await $fetch('/api/stripe/subscription', {
+          query: { customerId: props.user.stripe_customer_id }
+        })
+      } catch (e) {
+        console.error(e)
+      } finally {
+        loading.value = false
+      }
+    } else {
       loading.value = false
     }
+  } else {
+    // Reset si on ferme
+    showHistory.value = false
   }
 })
+
+const fetchInvoices = async () => {
+    if (!props.user?.stripe_customer_id) return
+    loadingInvoices.value = true
+    try {
+        invoices.value = await $fetch('/api/stripe/invoices', {
+            query: { customerId: props.user.stripe_customer_id }
+        })
+    } catch (e) {
+        notify("Impossible de charger l'historique.", "error")
+    } finally {
+        loadingInvoices.value = false
+    }
+}
+
+const handleOpenHistory = () => {
+    showHistory.value = true
+    fetchInvoices()
+}
 
 const cancelSubscription = async () => {
     loadingPortal.value = true
@@ -74,14 +104,24 @@ const formatDate = (dateStr: string) => {
 const formatPrice = (amount: number, currency: string) => {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount / 100)
 }
+
+const openPremium = () => {
+    emit('close')
+    showPremiumModal.value = true
+}
 </script>
 
 <template>
   <UiModal :show="show" @close="$emit('close')">
-    <div class="bg-ui-surface border border-ui-border p-6 rounded-2xl shadow-2xl max-w-md w-full">
+    <div class="bg-ui-surface border border-ui-border p-6 rounded-2xl shadow-2xl w-full transition-all duration-300" :class="showHistory ? 'max-w-2xl' : 'max-w-md'">
       
       <div class="flex justify-between items-start mb-6">
-        <h3 class="text-xl font-black text-ui-content">Mon Abonnement</h3>
+        <div class="flex items-center gap-2">
+            <button v-if="showHistory" @click="showHistory = false" class="p-1 -ml-2 hover:bg-ui-surface-muted rounded-full transition-colors" title="Retour">
+                <Icon name="lucide:arrow-left" class="w-5 h-5 text-ui-content-muted" />
+            </button>
+            <h3 class="text-xl font-black text-ui-content">{{ showHistory ? 'Historique des factures' : 'Mon Abonnement' }}</h3>
+        </div>
         <button @click="$emit('close')" class="p-1 hover:bg-ui-surface-muted rounded-full transition-colors">
           <Icon name="lucide:x" class="w-5 h-5 text-ui-content-muted" />
         </button>
@@ -93,8 +133,48 @@ const formatPrice = (amount: number, currency: string) => {
         <span class="text-sm">Récupération des détails...</span>
       </div>
 
+      <!-- VUE HISTORIQUE -->
+      <div v-else-if="showHistory" class="space-y-4 animate-in slide-in-from-right-4 duration-300">
+         <div v-if="loadingInvoices" class="py-12 flex justify-center">
+             <Icon name="lucide:loader-2" class="w-8 h-8 animate-spin text-ui-content-muted" />
+         </div>
+         <div v-else-if="invoices.length === 0" class="text-center py-8 text-ui-content-muted">
+            <Icon name="lucide:file-x" class="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>Aucune facture disponible.</p>
+         </div>
+         <div v-else class="overflow-hidden rounded-xl border border-ui-border bg-ui-surface-muted/20">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-ui-surface-muted text-ui-content-muted font-medium">
+                    <tr>
+                        <th class="p-3 pl-4">Date</th>
+                        <th class="p-3">Montant</th>
+                        <th class="p-3">Statut</th>
+                        <th class="p-3 text-right pr-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-ui-border">
+                    <tr v-for="inv in invoices" :key="inv.id" class="hover:bg-ui-surface-muted/50 transition-colors">
+                        <td class="p-3 pl-4 font-medium text-ui-content">{{ formatDate(inv.date) }}</td>
+                        <td class="p-3 text-ui-content">{{ formatPrice(inv.amount, inv.currency) }}</td>
+                        <td class="p-3">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                                :class="inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'">
+                                {{ inv.status === 'paid' ? 'Payée' : inv.status }}
+                            </span>
+                        </td>
+                        <td class="p-3 text-right pr-4">
+                            <a :href="inv.pdf_url" target="_blank" class="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-ui-surface-muted text-ui-content-muted hover:text-blue-600 transition-colors" title="Télécharger la facture">
+                                <Icon name="lucide:download" class="w-4 h-4" />
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+         </div>
+      </div>
+
       <!-- Détails -->
-      <div v-else-if="subscription && (subscription.status === 'active' || subscription.status === 'trialing')" class="space-y-6">
+      <div v-else-if="subscription && (subscription.status === 'active' || subscription.status === 'trialing')" class="space-y-6 animate-in slide-in-from-left-4 duration-300">
         
         <!-- Badge Statut -->
         <div class="flex items-center gap-3 p-4 border rounded-xl transition-colors"
@@ -165,13 +245,22 @@ const formatPrice = (amount: number, currency: string) => {
                 class="text-xs h-auto py-3"
               >
                 <Icon name="lucide:credit-card" class="w-3 h-3 mr-2" />
-                Changer de carte
+                Moyen de paiement
+              </UiButton>
+             <UiButton 
+                @click="handleOpenHistory" 
+                :disabled="loadingPortal"
+                variant="outline"
+                class="text-xs h-auto py-3"
+              >
+                <Icon name="lucide:file-text" class="w-3 h-3 mr-2" />
+                Historique & Factures
               </UiButton>
              <UiButton 
                 @click="showCancelConfirm = true" 
                 :disabled="loadingPortal"
                 variant="outline"
-                class="text-xs h-auto py-3 text-red-600 hover:bg-red-50 border-red-200 hover:border-red-300"
+                class="col-span-2 text-xs h-auto py-3 text-red-600 hover:bg-red-50 border-red-200 hover:border-red-300"
               >
                 <Icon name="lucide:ban" class="w-3 h-3 mr-2" />
                 Se désabonner
@@ -190,9 +279,22 @@ const formatPrice = (amount: number, currency: string) => {
         </div>
       </div>
 
-      <!-- Erreur / Pas d'abo -->
-      <div v-else class="text-center py-6">
-        <p class="text-ui-content-muted">Aucun abonnement actif trouvé.</p>
+      <!-- Plan Gratuit -->
+      <div v-else class="space-y-6 animate-in slide-in-from-left-4 duration-300">
+        <div class="flex items-center gap-3 p-4 border border-ui-border rounded-xl bg-gray-50 dark:bg-gray-800/50">
+          <div class="w-10 h-10 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-sm text-gray-500 dark:text-gray-400">
+            <Icon name="lucide:package" class="w-6 h-6" />
+          </div>
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">Statut</p>
+            <p class="font-medium text-gray-900 dark:text-white">Plan Gratuit</p>
+          </div>
+        </div>
+
+        <UiButton @click="openPremium" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-none shadow-lg shadow-amber-500/20">
+            <Icon name="lucide:crown" class="w-4 h-4 mr-2" />
+            Voir les offres Premium
+        </UiButton>
       </div>
 
     </div>

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
+import { useNotification } from '#imports'
+
 const props = defineProps<{
   show: boolean
   user: any
@@ -12,7 +15,7 @@ const role = ref(1)
 const extensionDate = ref<Date | null>(null)
 const isSaving = ref(false)
 
-watch(() => [props.show, props.user], ([isOpen, user]) => {
+watch([() => props.show, () => props.user], ([isOpen, user]: [any, any]) => {
   if (isOpen && user) {
     role.value = user.role
     if (user.role === 2) {

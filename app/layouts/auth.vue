@@ -62,6 +62,9 @@ const { isMaintenanceNow } = useSystemSettings()
       <div>
         <slot />
       </div>
+
+      <!-- Notifications -->
+      <UiNotification />
     </aside>
   </div>
 </template>

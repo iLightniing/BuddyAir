@@ -4,18 +4,15 @@ defineProps<{
 }>()
 
 const emit = defineEmits(['error'])
-const pb = usePocketBase()
+const { loginWithGoogle, loading } = useSocialAuth()
 
 const providers = [
   { name: 'google', icon: 'logos:google-icon', label: 'Continuer avec Google' }
 ]
 
 const loginWithProvider = async (provider: string) => {
-  try {
-    await pb.collection('users').authWithOAuth2({ provider });
-  } catch (error) {
-    console.error('Erreur Auth Sociale:', error);
-    emit('error', error)
+  if (provider === 'google') {
+    await loginWithGoogle()
   }
 }
 </script>
@@ -33,10 +30,12 @@ const loginWithProvider = async (provider: string) => {
         v-for="provider in providers"
         :key="provider.name" 
         type="button" 
+        :disabled="loading"
         @click="loginWithProvider(provider.name)"
-        class="flex items-center justify-center gap-3 py-3.5 bg-ui-surface border border-ui-border rounded-md hover:bg-ui-surface-muted transition-all text-ui-content text-sm font-bold cursor-pointer group/btn w-full"
+        class="flex items-center justify-center gap-3 py-3.5 bg-ui-surface border border-ui-border rounded-md hover:bg-ui-surface-muted transition-all text-ui-content text-sm font-bold cursor-pointer group/btn w-full disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <Icon :name="provider.icon" class="w-5 h-5" />
+        <Icon v-if="loading && provider.name === 'google'" name="lucide:loader-2" class="w-5 h-5 animate-spin" />
+        <Icon v-else :name="provider.icon" class="w-5 h-5" />
         {{ provider.label }}
       </button>
     </div>

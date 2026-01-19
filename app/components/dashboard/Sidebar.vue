@@ -61,8 +61,8 @@ const confirmLogout = async () => {
         v-for="item in navItems" 
         :key="item.to"
         :to="item.to"
-        class="relative group flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 hover:bg-ui-surface-muted text-ui-content-muted hover:text-ui-content"
-        exact-active-class="!text-blue-500 bg-ui-surface-muted shadow-sm"
+        class="relative group flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 text-ui-content-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+        exact-active-class="!bg-indigo-600 !text-white shadow-lg shadow-indigo-500/20 scale-105"
       >
         <Icon :name="item.icon" class="w-6 h-6" />
         

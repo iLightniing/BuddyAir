@@ -155,5 +155,8 @@ onMounted(async () => {
     
     <!-- Modale Succès Paiement -->
     <PaymentSuccessModal :show="showSuccessModal" @close="showSuccessModal = false" />
+
+    <!-- Notifications -->
+    <UiNotification />
   </div>
 </template>

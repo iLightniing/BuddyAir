@@ -2,7 +2,6 @@
 import PocketBase from 'pocketbase'
 
 let pb: PocketBase | null = null
-const POCKETBASE_URL = 'http://127.0.0.1:8090'
 
 // Fonction pour restaurer l'impersonation si nécessaire
 const enforceImpersonation = (pbInstance: PocketBase) => {
@@ -24,6 +23,22 @@ const enforceImpersonation = (pbInstance: PocketBase) => {
 }
 
 export const usePocketBase = () => {
+  const config = useRuntimeConfig()
+  const POCKETBASE_URL = (config.public?.pocketbaseUrl as string) || 'http://127.0.0.1:8090'
+
+  // Debug : Affiche l'URL utilisée pour être sûr qu'on tape sur la bonne base
+  if (import.meta.client && !pb) {
+    // On affiche ces alertes UNIQUEMENT en mode développement
+    if (import.meta.dev) {
+        console.log('🔌 Connexion PocketBase sur :', POCKETBASE_URL)
+        if (POCKETBASE_URL.includes('localhost') || POCKETBASE_URL.includes('127.0.0.1')) {
+            console.log('%c✅ Mode Développement (Base Locale)', 'color: green; font-weight: bold;')
+        } else {
+            console.warn('%c⚠️ ATTENTION : Vous êtes connecté à une base de données DISTANTE (Production ?)', 'color: red; font-weight: bold; font-size: 1.2em;')
+        }
+    }
+  }
+
   // Sur le client, on utilise une instance unique (Singleton) pour conserver le store d'auth
   if (import.meta.client) {
     if (!pb) {

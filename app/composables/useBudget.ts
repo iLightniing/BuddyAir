@@ -45,7 +45,7 @@ export const useBudget = () => {
       
       const txs = await pb.collection('transactions').getFullList({
         filter: `user = "${user.value.id}" && date >= "${start}" && date <= "${end}" && type = "expense"`,
-        expand: 'account',
+        expand: 'account,category',
         sort: '-date'
       })
       transactions.value = txs.map(t => ({ ...t }))
@@ -55,6 +55,7 @@ export const useBudget = () => {
       const prevEnd = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), 0, 23, 59, 59).toISOString()
       const prevTxs = await pb.collection('transactions').getFullList({
         filter: `user = "${user.value.id}" && date >= "${prevStart}" && date <= "${prevEnd}" && type = "expense"`,
+        expand: 'category'
       })
       previousTransactions.value = prevTxs.map(t => ({ ...t }))
 
@@ -67,6 +68,7 @@ export const useBudget = () => {
       // 5. Échéances
       const scheduled = await pb.collection('scheduled_transactions').getFullList({
         filter: `user = "${user.value.id}" && next_date >= "${start}" && next_date <= "${end}" && type = "expense"`,
+        expand: 'category'
       })
       scheduledTransactions.value = scheduled.map(s => ({ ...s }))
 

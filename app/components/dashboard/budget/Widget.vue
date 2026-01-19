@@ -30,11 +30,21 @@ onMounted(async () => {
     
     const transactions = await pb.collection('transactions').getFullList({
        filter: `user = "${user.value.id}" && date >= "${start}" && date <= "${end}" && type = "expense"`,
-       requestKey: null
+       requestKey: null,
+       expand: 'category'
     })
     
     // On ne compte que les dépenses qui ont une catégorie budgétisée
-    const relevantTransactions = transactions.filter(t => budgetCategories.includes(t.category))
+    const relevantTransactions = transactions.filter(t => {
+        // Récupération robuste du nom de la catégorie (comme sur le dashboard)
+        let txCatName = ''
+        if (t.expand?.category) {
+             const catObj = Array.isArray(t.expand.category) ? t.expand.category[0] : t.expand.category
+             txCatName = catObj.name || catObj.label || ''
+        }
+        const catName = txCatName || t.category || ''
+        return budgetCategories.some(bc => bc.trim().toLowerCase() === catName.trim().toLowerCase())
+    })
     totalSpent.value = relevantTransactions.reduce((acc, t) => acc + Math.abs(t.amount), 0)
     
   } catch (e) {

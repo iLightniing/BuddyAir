@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { navigateTo } from '#app'
-import DashboardWidgetsTotalBalance from '~/components/dashboard/widgets/TotalBalance.vue'
 import DashboardWidgetsRecentTransactions from '~/components/dashboard/widgets/RecentTransactions.vue'
 import DashboardWidgetsUpcomingSchedules from '~/components/dashboard/widgets/UpcomingSchedules.vue'
 import DashboardAccountAccountsList from '~/components/dashboard/widgets/AccountsList.vue'
-import DashboardWidgetsMonthlyBudget from '~/components/dashboard/widgets/MonthlyBudget.vue'
-import DashboardWidgetsSavingsGoals from '~/components/dashboard/widgets/SavingsGoals.vue'
-import DashboardWidgetsCashFlow from '~/components/dashboard/widgets/CashFlow.vue'
 import OnboardingWidget from '~/components/dashboard/onboarding/OnboardingWidget.vue'
 import DashboardAccountModal from '~/components/dashboard/account/Modal.vue'
 
@@ -18,26 +14,12 @@ definePageMeta({
 const user = usePocketBaseUser()
 const pb = usePocketBase()
 const { 
-  loading, accounts, recentTransactions, upcomingSchedules, fetchData,
-  totalCurrent, totalSavings, totalCredit
+  loading, accounts, recentTransactions, upcomingSchedules, fetchData
 } = useDashboardData()
+const { openPremiumModal } = usePremium()
 
 // On force le chargement par défaut pour éviter le flash de l'onboarding
 loading.value = true
-
-// C'est ici que la magie opère : on lance le fetch à chaque fois que le composant est monté
-onMounted(() => {
-  fetchData()
-  fetchMonthlyStats()
-})
-
-// Sécurité supplémentaire : si l'utilisateur arrive tardivement (ex: refresh de page)
-watch(user, (u) => {
-  if (u && accounts.value.length === 0 && !loading.value) {
-    fetchData()
-    fetchMonthlyStats()
-  }
-})
 
 const showCreateAccountModal = ref(false)
 
@@ -52,42 +34,18 @@ const completedOnboardingSteps = computed(() => {
 
 const showOnboarding = computed(() => accounts.value.length === 0 || recentTransactions.value.length === 0)
 
-// --- Données Calculées pour les Widgets ---
-const monthlyIncome = ref(0)
-const monthlyExpense = ref(0)
-
-const fetchMonthlyStats = async () => {
-  if (!user.value) return
-  
-  const now = new Date()
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  
-  try {
-    // On récupère toutes les transactions du mois en cours
-    const transactions = await pb.collection('transactions').getFullList({
-      filter: `user = "${user.value.id}" && date >= "${startOfMonth}"`,
-      fields: 'amount'
-    })
-    
-    // Calcul des totaux
-    monthlyIncome.value = transactions.filter((t: any) => t.amount > 0).reduce((sum: number, t: any) => sum + t.amount, 0)
-    monthlyExpense.value = transactions.filter((t: any) => t.amount < 0).reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0)
-    
-  } catch (e) {
-    console.error("Erreur stats mensuelles:", e)
+// --- Cycle de vie (Déplacé après les fonctions pour garantir leur existence) ---
+onMounted(() => {
+  if (user.value) {
+    fetchData()
   }
-}
+})
 
-// Transformation des comptes épargne en "Objectifs"
-const savingsGoals = computed(() => {
-  return accounts.value
-    .filter(acc => acc.account_group === 'savings')
-    .map(acc => ({
-      name: acc.name,
-      current: acc.current_balance,
-      target: (acc as any).target || 10000, // Valeur par défaut si pas de cible définie
-      color: 'bg-emerald-500'
-    }))
+watch(user, (u) => {
+  if (u) {
+    // On recharge toujours les stats et projets, même si les comptes sont déjà là
+    if (accounts.value.length === 0) fetchData()
+  }
 })
 
 const handleOnboardingAction = (action: string) => {
@@ -124,49 +82,21 @@ const handleOnboardingAction = (action: string) => {
     <!-- UNE SEULE GRANDE CARTE -->
     <div v-else class="bg-ui-surface border border-ui-border rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
         
-        <!-- En-tête : Solde Global (Pleine largeur) -->
-        <div class="p-6 sm:p-8 border-b border-ui-border">
-            <DashboardWidgetsTotalBalance 
-                :total-current="totalCurrent" 
-                :total-savings="totalSavings" 
-                :total-credit="totalCredit" 
-                class="!bg-transparent !border-0 !shadow-none !p-0 !text-ui-content"
-            />
-        </div>
-
         <!-- Contenu Principal (3 Colonnes) -->
         <div class="grid grid-cols-1 xl:grid-cols-12 divide-y xl:divide-y-0 xl:divide-x divide-ui-border">
             
             <!-- Colonne Gauche (3/12) : Mes Comptes -->
-            <div class="xl:col-span-3 p-6 flex flex-col gap-8 bg-ui-surface-muted/5">
+            <div class="xl:col-span-3 p-4 flex flex-col gap-8 bg-ui-surface-muted/5">
                 <div>
-                    <h3 class="text-xs font-black text-ui-content-muted uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Icon name="lucide:wallet" class="w-3 h-3" /> Mes Comptes
-                    </h3>
                     <DashboardAccountAccountsList 
                         :accounts="accounts" 
-                        class="!bg-transparent !border-0 !shadow-none !p-0"
-                    />
-                </div>
-                <div v-if="savingsGoals.length > 0">
-                    <h3 class="text-xs font-black text-ui-content-muted uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Icon name="lucide:target" class="w-3 h-3" /> Objectifs
-                    </h3>
-                    <DashboardWidgetsSavingsGoals 
-                        :goals="savingsGoals" 
                         class="!bg-transparent !border-0 !shadow-none !p-0"
                     />
                 </div>
             </div>
 
             <!-- Colonne Centrale (6/12) : Activité -->
-            <div class="xl:col-span-6 p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-bold text-ui-content flex items-center gap-2">
-                        <Icon name="lucide:history" class="w-5 h-5 text-ui-content-muted" />
-                        Activité récente
-                    </h3>
-                </div>
+            <div class="xl:col-span-6 p-4">
                 <DashboardWidgetsRecentTransactions 
                     :transactions="recentTransactions" 
                     :loading="loading" 
@@ -174,32 +104,25 @@ const handleOnboardingAction = (action: string) => {
                 />
             </div>
 
-            <!-- Colonne Droite (3/12) : Synthèse & Prévisions -->
-            <div class="xl:col-span-3 p-6 flex flex-col gap-8 bg-ui-surface-muted/5">
-                <!-- Stats -->
-                <div class="space-y-6">
-                    <h3 class="text-xs font-black text-ui-content-muted uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <Icon name="lucide:bar-chart-3" class="w-3 h-3" /> Ce mois-ci
-                    </h3>
-                    <DashboardWidgetsCashFlow 
-                        :income="monthlyIncome" 
-                        :expenses="monthlyExpense" 
-                        class="!bg-transparent !border-0 !shadow-none !p-0"
-                    />
-                    <DashboardWidgetsMonthlyBudget 
-                        :spent="monthlyExpense" 
-                        :budget="2000" 
-                        class="!bg-transparent !border-0 !shadow-none !p-0"
-                    />
-                </div>
-
+            <!-- Colonne Droite (3/12) : Échéances -->
+            <div class="xl:col-span-3 p-4 flex flex-col gap-8 bg-ui-surface-muted/5">
                 <!-- Échéances -->
                 <div>
-                    <h3 class="text-xs font-black text-ui-content-muted uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Icon name="lucide:calendar-clock" class="w-3 h-3" /> À venir
-                    </h3>
+                    <div v-if="user?.role === 1" class="text-center py-6 space-y-3 bg-ui-surface border border-ui-border rounded-xl p-4 shadow-sm">
+                        <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+                            <Icon name="lucide:crown" class="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-ui-content text-sm">Échéances</h4>
+                            <p class="text-xs text-ui-content-muted mt-0.5">Réservé aux membres Premium.</p>
+                        </div>
+                        <UiButton @click="openPremiumModal" size="sm" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 border-none text-white shadow-lg shadow-amber-500/20 text-xs h-8">
+                            S'abonner
+                        </UiButton>
+                    </div>
                     <DashboardWidgetsUpcomingSchedules 
-                        :schedules="upcomingSchedules" 
+                        v-else-if="user"
+                        :schedules="upcomingSchedules.slice(0, 5)" 
                         :loading="loading" 
                         class="!bg-transparent !border-0 !shadow-none !p-0"
                     />

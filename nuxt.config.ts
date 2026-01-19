@@ -10,6 +10,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       stripeKey: process.env.NUXT_PUBLIC_STRIPE_KEY || '',
+      pocketbaseUrl: process.env.NUXT_PUBLIC_POCKETBASE_URL || '',
     }
   },
   app: {
